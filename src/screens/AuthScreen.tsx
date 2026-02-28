@@ -1,15 +1,23 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
+  Animated,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Dimensions,
+  Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
+
+const { width } = Dimensions.get('window');
+const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
 interface AuthScreenProps {
   onSubmit: (phone: string) => void;
@@ -17,171 +25,188 @@ interface AuthScreenProps {
   error: string | null;
 }
 
-const formatKGPhone = (value: string) => {
-  const digits = value.replace(/\D/g, '');
-  if (digits.length === 0) return '+996 ';
-
-  let cleanDigits = digits;
-  if (digits.startsWith('0')) {
-    cleanDigits = '996' + digits.substring(1);
-  } else if (!digits.startsWith('996')) {
-    cleanDigits = '996' + digits;
-  }
-
-  let result = '+996';
-  const mainPart = cleanDigits.substring(3);
-
-  if (mainPart.length > 0) result += ' (' + mainPart.substring(0, 3);
-  if (mainPart.length >= 3) result += ') ' + mainPart.substring(3, 5);
-  if (mainPart.length >= 5) result += '-' + mainPart.substring(5, 7);
-  if (mainPart.length >= 7) result += '-' + mainPart.substring(7, 9);
-
-  return result;
-};
-
-export const AuthScreen: React.FC<AuthScreenProps> = ({
-  onSubmit,
-  isLoading,
-  error,
-}) => {
+export const AuthScreen: React.FC<AuthScreenProps> = ({ onSubmit, isLoading, error }) => {
   const [phone, setPhone] = useState('+996 ');
 
+  // Рефы для анимаций
+  const keyboardAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const logoSlide = useRef(new Animated.Value(30)).current;
+  const formSlide = useRef(new Animated.Value(50)).current;
+  const focusAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Каскадное появление элементов (Stagger)
+    Animated.stagger(100, [
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        Animated.spring(logoSlide, { toValue: 0, tension: 20, friction: 7, useNativeDriver: true }),
+      ]),
+      Animated.spring(formSlide, { toValue: 0, tension: 15, friction: 8, useNativeDriver: true }),
+    ]).start();
+
+    // Синхронизация с клавиатурой
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      Animated.timing(keyboardAnim, {
+        toValue: -e.endCoordinates.height * 0.35,
+        duration: Platform.OS === 'ios' ? e.duration : 300,
+        easing: Easing.bezier(0.33, 1, 0.68, 1),
+        useNativeDriver: true,
+      }).start();
+    });
+
+    const hideSub = Keyboard.addListener(hideEvent, (e) => {
+      Animated.timing(keyboardAnim, {
+        toValue: 0,
+        duration: Platform.OS === 'ios' ? e.duration : 300,
+        easing: Easing.bezier(0.33, 1, 0.68, 1),
+        useNativeDriver: true,
+      }).start();
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const handleFocus = () => {
+    Animated.spring(focusAnim, {
+      toValue: 1,
+      tension: 40,
+      friction: 7,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const handleBlur = () => {
+    Animated.spring(focusAnim, {
+      toValue: 0,
+      tension: 40,
+      friction: 7,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const inputScale = focusAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.03],
+  });
+
+  const inputBorder = focusAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#F2F2F7', colors.primary || '#D17842'],
+  });
+
+  // Логика форматирования (KG)
   const handleChangePhone = useCallback((text: string) => {
+    const digits = text.replace(/\D/g, '');
     if (text.length < 5 && phone.includes('+996')) {
       setPhone('+996 ');
       return;
     }
-    setPhone(formatKGPhone(text));
+    // Простая маска внутри
+    let res = '+996';
+    const main = digits.startsWith('996') ? digits.substring(3) : digits;
+    if (main.length > 0) res += ' (' + main.substring(0, 3);
+    if (main.length >= 3) res += ') ' + main.substring(3, 5);
+    if (main.length >= 5) res += '-' + main.substring(5, 7);
+    if (main.length >= 7) res += '-' + main.substring(7, 9);
+    setPhone(res);
   }, [phone]);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView
-        style={styles.safe}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <Text style={styles.title}>CoffeePoint KG</Text>
-            <Text style={styles.subtitle}>
-              Введите ваш номер телефона, чтобы заказать лучший кофе в Бишкеке.
-            </Text>
-          </View>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.flex}>
+        <SafeAreaView style={styles.safe}>
+          <Animated.View style={[styles.bgBlob, { opacity: fadeAnim }]} />
+          <Animated.View style={[styles.container, { transform: [{ translateY: keyboardAnim }] }]}>
+            <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: logoSlide }] }}>
+              <View style={styles.logoBadge}>
+                <Text style={styles.logoEmoji}>☕️</Text>
+              </View>
+              <Text style={styles.title}>CoffeePoint</Text>
+              <Text style={styles.subtitle}>Бишкек • Твой любимый кофе</Text>
+            </Animated.View>
+            <Animated.View style={[
+              styles.form,
+              { opacity: fadeAnim, transform: [{ translateY: formSlide }] }
+            ]}>
+              <Text style={styles.label}>Телефон</Text>
 
-          <View style={styles.form}>
-            <Text style={styles.label}>Номер телефона</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="phone-pad"
-              value={phone}
-              onChangeText={handleChangePhone}
-              placeholder="+996 (700) 00-00-00"
-              placeholderTextColor={colors.textMuted}
-              maxLength={19}
-            />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+              <Animated.View style={{ transform: [{ scale: inputScale }] }}>
+                <AnimatedTextInput
+                  style={[styles.input, { borderColor: inputBorder }]}
+                  keyboardType="phone-pad"
+                  value={phone}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
+                  onChangeText={handleChangePhone}
+                  placeholder="+996 (___) __-__-__"
+                  placeholderTextColor="#AEA9A9"
+                  maxLength={19}
+                />
+              </Animated.View>
 
-            <TouchableOpacity
-              style={[styles.button, isLoading && styles.buttonDisabled]}
-              onPress={() => onSubmit(phone)}
-              disabled={isLoading}
-            >
-              <Text style={styles.buttonText}>
-                {isLoading ? 'Проверка...' : 'Войти'}
-              </Text>
-            </TouchableOpacity>
+              {error && <Text style={styles.errorText}>{error}</Text>}
 
-            <Text style={styles.helper}>
-              Используйте любой номер KG (О!, Mega, Beeline). Код подтверждения придет в SMS (имитация).
-            </Text>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+              <TouchableOpacity
+                style={[styles.button, (phone.length < 19 || isLoading) && styles.buttonDisabled]}
+                onPress={() => onSubmit(phone)}
+                disabled={phone.length < 19 || isLoading}
+                activeOpacity={0.8}
+              >
+                {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Войти</Text>}
+              </TouchableOpacity>
+
+              <Text style={styles.footerText}>Твой кофе уже готовится!</Text>
+            </Animated.View>
+          </Animated.View>
+        </SafeAreaView>
+      </View>
+    </TouchableWithoutFeedback>
   );
 };
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
+  flex: { flex: 1, backgroundColor: '#FFF' },
+  safe: { flex: 1 },
+  bgBlob: {
+    position: 'absolute',
+    width: width * 1.3,
+    height: width * 1.3,
+    borderRadius: width,
+    backgroundColor: '#FDF7F2',
+    top: -width * 0.7,
+    right: -width * 0.3,
   },
-  container: {
-    flex: 1,
-    paddingHorizontal: 24,
-    justifyContent: 'center',
+  container: { flex: 1, paddingHorizontal: 35, justifyContent: 'center' },
+  logoBadge: {
+    width: 60, height: 60, borderRadius: 20,
+    backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center',
+    marginBottom: 20, elevation: 4, shadowColor: '#000',
+    shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }
   },
-  header: {
-    marginBottom: 40,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 12,
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 16,
-    lineHeight: 22,
-    color: colors.textMuted,
-  },
-  form: {
-    width: '100%',
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
-    marginLeft: 4,
-  },
+  logoEmoji: { fontSize: 30 },
+  title: { fontSize: 36, fontWeight: '900', color: '#1C1C1E', letterSpacing: -1 },
+  subtitle: { fontSize: 16, color: '#8E8E93', marginTop: 5 },
+  form: { marginTop: 40 },
+  label: { fontSize: 11, fontWeight: '800', color: '#BCBABB', textTransform: 'uppercase', marginBottom: 10, letterSpacing: 1 },
   input: {
-    height: 58,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    paddingHorizontal: 20,
-    backgroundColor: '#FFFFFF',
-    fontSize: 18,
-    color: colors.text,
-    // Легкая тень для iOS
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    height: 65, borderRadius: 20, paddingHorizontal: 20,
+    fontSize: 20, fontWeight: '700', color: '#1C1C1E',
+    borderWidth: 2, backgroundColor: '#F9F9F9'
   },
   button: {
-    marginTop: 24,
-    height: 58,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 3, // Тень для Android
+    height: 65, borderRadius: 20, backgroundColor: colors.primary || '#D17842',
+    justifyContent: 'center', alignItems: 'center', marginTop: 25,
+    shadowColor: colors.primary, shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }
   },
-  buttonDisabled: {
-    backgroundColor: colors.border,
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  helper: {
-    marginTop: 20,
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
-    color: colors.textMuted,
-    paddingHorizontal: 10,
-  },
-  error: {
-    marginTop: 10,
-    fontSize: 14,
-    color: '#E53935',
-    fontWeight: '500',
-    marginLeft: 4,
-  },
+  buttonDisabled: { backgroundColor: '#E5E5EA', shadowOpacity: 0 },
+  buttonText: { color: '#FFF', fontSize: 18, fontWeight: '800' },
+  errorText: { color: '#FF3B30', fontSize: 14, marginTop: 10, textAlign: 'center', fontWeight: '600' },
+  footerText: { textAlign: 'center', color: '#AEA9A9', fontSize: 12, marginTop: 25 }
 });
