@@ -7,17 +7,18 @@ import {
   TouchableOpacity,
   TextInput,
   Animated,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCartStore } from '../store/cartStore';
 import { useProfileStore } from '../store/profileStore';
 import { colors } from '../theme/colors';
+import { CreditCard, MessageSquare } from 'lucide-react-native';
 
 type PaymentMethod = 'card' | 'cash';
 
 export const CartScreen: React.FC = () => {
-  const { items, increaseQuantity, decreaseQuantity, totalPrice, createOrderMock } =
-    useCartStore();
+  const { items, increaseQuantity, decreaseQuantity, totalPrice, createOrderMock } = useCartStore();
   const addOrderToHistory = useProfileStore((s) => s.addOrderToHistory);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   const [comment, setComment] = useState('');
@@ -27,324 +28,246 @@ export const CartScreen: React.FC = () => {
     if (!items.length) return;
     const order = createOrderMock({ paymentMethod, comment });
     addOrderToHistory(order);
-    Animated.sequence([
-      Animated.timing(successAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(successAnim, {
-        toValue: 0,
-        delay: 900,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    
+    Animated.spring(successAnim, {
+      toValue: 1,
+      tension: 50,
+      friction: 7,
+      useNativeDriver: true,
+    }).start(() => {
+      setTimeout(() => {
+        Animated.timing(successAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      }, 2000);
+    });
     setComment('');
   };
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Корзина</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Мой заказ</Text>
+        <Text style={styles.countText}>{items.length} позиции</Text>
+      </View>
 
-        <FlatList
-          data={items}
-          keyExtractor={(item) => item.product.id}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>Ваша корзина пуста.</Text>
-          }
-          renderItem={({ item }) => (
-            <View style={styles.itemRow}>
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.product.name}</Text>
-                <Text style={styles.itemPrice}>
-                  {item.product.price} ₽ x {item.quantity}
-                </Text>
-              </View>
-              <View style={styles.counter}>
-                <TouchableOpacity
-                  style={styles.counterButton}
-                  onPress={() => decreaseQuantity(item.product.id)}
-                >
-                  <Text style={styles.counterText}>-</Text>
-                </TouchableOpacity>
-                <Text style={styles.counterValue}>{item.quantity}</Text>
-                <TouchableOpacity
-                  style={styles.counterButton}
-                  onPress={() => increaseQuantity(item.product.id)}
-                >
-                  <Text style={styles.counterText}>+</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        />
-
-        <View style={styles.footer}>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Итого:</Text>
-            <Text style={styles.totalValue}>{totalPrice()} ₽</Text>
+      <FlatList
+        data={items}
+        keyExtractor={(item) => item.product.id}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyEmoji}>🛒</Text>
+            <Text style={styles.emptyText}>Корзина пока пуста</Text>
           </View>
-
-          <View style={styles.paymentRow}>
-            <Text style={styles.sectionLabel}>Способ оплаты</Text>
-            <View style={styles.paymentChips}>
+        }
+        renderItem={({ item }) => (
+          <View style={styles.itemCard}>
+            <View style={styles.itemInfo}>
+              <Text style={styles.itemName}>{item.product.name}</Text>
+              <Text style={styles.itemCategory}>{item.product.category}</Text>
+              <Text style={styles.itemPrice}>{item.product.price} ⃀</Text>
+            </View>
+            
+            <View style={styles.stepper}>
               <TouchableOpacity
-                style={[
-                  styles.paymentChip,
-                  paymentMethod === 'card' && styles.paymentChipActive,
-                ]}
+                style={styles.stepButton}
+                onPress={() => decreaseQuantity(item.product.id)}
+              >
+                <Text style={styles.stepText}>—</Text>
+              </TouchableOpacity>
+              <Text style={styles.stepValue}>{item.quantity}</Text>
+              <TouchableOpacity
+                style={styles.stepButton}
+                onPress={() => increaseQuantity(item.product.id)}
+              >
+                <Text style={styles.stepText}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      />
+
+      <View style={styles.footer}>
+        <View style={styles.optionsCard}>
+          <View style={styles.paymentSection}>
+            <View style={styles.sectionHeader}>
+              <CreditCard size={16} color="#8E8E93" />
+              <Text style={styles.sectionTitle}>Способ оплаты</Text>
+            </View>
+            <View style={styles.tabs}>
+              <TouchableOpacity
+                style={[styles.tab, paymentMethod === 'card' && styles.tabActive]}
                 onPress={() => setPaymentMethod('card')}
               >
-                <Text
-                  style={[
-                    styles.paymentChipText,
-                    paymentMethod === 'card' && styles.paymentChipTextActive,
-                  ]}
-                >
-                  Карта
-                </Text>
+                <Text style={[styles.tabText, paymentMethod === 'card' && styles.tabTextActive]}>Картой</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[
-                  styles.paymentChip,
-                  paymentMethod === 'cash' && styles.paymentChipActive,
-                ]}
+                style={[styles.tab, paymentMethod === 'cash' && styles.tabActive]}
                 onPress={() => setPaymentMethod('cash')}
               >
-                <Text
-                  style={[
-                    styles.paymentChipText,
-                    paymentMethod === 'cash' && styles.paymentChipTextActive,
-                  ]}
-                >
-                  Наличные
-                </Text>
+                <Text style={[styles.tabText, paymentMethod === 'cash' && styles.tabTextActive]}>Наличные</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          <View style={styles.commentBlock}>
-            <Text style={styles.sectionLabel}>Комментарий к заказу</Text>
+          <View style={styles.divider} />
+
+          <View style={styles.commentSection}>
+            <View style={styles.sectionHeader}>
+              <MessageSquare size={16} color="#8E8E93" />
+              <Text style={styles.sectionTitle}>Комментарий</Text>
+            </View>
             <TextInput
-              style={styles.commentInput}
+              style={styles.input}
               value={comment}
               onChangeText={setComment}
-              placeholder="Например: без сахара, позвонить при доставке..."
-              placeholderTextColor={colors.textMuted}
+              placeholder="Добавить пожелания..."
+              placeholderTextColor="#AEA9A9"
               multiline
             />
           </View>
+        </View>
 
+        <View style={styles.checkoutContainer}>
+          <View style={styles.priceBlock}>
+            <Text style={styles.totalLabel}>К оплате</Text>
+            <Text style={styles.totalValue}>{totalPrice()} ⃀</Text>
+          </View>
+          
           <TouchableOpacity
-            style={[
-              styles.checkoutButton,
-              !items.length && styles.checkoutButtonDisabled,
-            ]}
+            style={[styles.payButton, !items.length && styles.payButtonDisabled]}
             onPress={handleCheckout}
             disabled={!items.length}
           >
-            <Text style={styles.checkoutButtonText}>Оформить заказ</Text>
+            <Text style={styles.payButtonText}>Заказать</Text>
           </TouchableOpacity>
-
-          <Animated.View
-            style={[
-              styles.successToast,
-              {
-                opacity: successAnim,
-                transform: [
-                  {
-                    translateY: successAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [20, 0],
-                    }),
-                  },
-                  {
-                    scale: successAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.95, 1],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <Text style={styles.successText}>Заказ оформлен!</Text>
-          </Animated.View>
         </View>
       </View>
+
+      <Animated.View style={[styles.toast, { 
+        opacity: successAnim,
+        transform: [{ translateY: successAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [100, 0]
+        })}] 
+      }]}>
+        <Text style={styles.toastText}>🎉 Заказ успешно принят!</Text>
+      </Animated.View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
+  safe: { flex: 1, backgroundColor: '#F8F9FA' },
+  header: { 
+    paddingHorizontal: 24, 
+    paddingVertical: 15, 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center' 
   },
-  container: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
-    marginTop: 16,
-  },
-  listContent: {
-    paddingVertical: 16,
-    paddingBottom: 120,
-  },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 32,
-    color: colors.textMuted,
-  },
-  itemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginBottom: 10,
-  },
-  itemInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  itemName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  itemPrice: {
-    marginTop: 4,
-    fontSize: 13,
-    color: colors.textMuted,
-  },
-  counter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  counterButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  counterText: {
-    fontSize: 18,
-    color: colors.text,
-  },
-  counterValue: {
-    marginHorizontal: 8,
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  footer: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 20,
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  totalLabel: {
-    fontSize: 16,
-    color: colors.textMuted,
-  },
-  totalValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  paymentRow: {
-    marginBottom: 12,
-  },
-  sectionLabel: {
-    fontSize: 14,
-    color: colors.textMuted,
-    marginBottom: 6,
-  },
-  paymentChips: {
-    flexDirection: 'row',
-  },
-  paymentChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+  title: { fontSize: 28, fontWeight: '800', color: '#1C1C1E' },
+  countText: { fontSize: 14, color: '#8E8E93', fontWeight: '600' },
+  listContent: { paddingHorizontal: 24, paddingTop: 10, paddingBottom: 320 },
+  
+  itemCard: {
+    backgroundColor: '#FFF',
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: '#fff',
-    marginRight: 8,
-  },
-  paymentChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  paymentChipText: {
-    color: colors.textMuted,
-    fontSize: 14,
-  },
-  paymentChipTextActive: {
-    color: '#fff',
-  },
-  commentBlock: {
+    padding: 16,
     marginBottom: 12,
-  },
-  commentInput: {
-    minHeight: 60,
-    maxHeight: 100,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#fff',
-    fontSize: 14,
-    color: colors.text,
-  },
-  checkoutButton: {
-    height: 52,
-    borderRadius: 999,
-    backgroundColor: colors.primary,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8 },
+      android: { elevation: 3 }
+    })
   },
-  checkoutButtonDisabled: {
-    backgroundColor: colors.border,
+  itemInfo: { flex: 1 },
+  itemName: { fontSize: 16, fontWeight: '700', color: '#1C1C1E' },
+  itemCategory: { fontSize: 12, color: '#AEA9A9', marginTop: 2 },
+  itemPrice: { fontSize: 16, fontWeight: '800', color: colors.primary, marginTop: 6 },
+  
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 4,
   },
-  checkoutButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  successToast: {
-    position: 'absolute',
-    alignSelf: 'center',
-    bottom: 80,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 999,
-    backgroundColor: colors.primary,
-  },
-  successText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-});
+  stepButton: { width: 32, height: 32, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 8 },
+  stepText: { fontSize: 16, fontWeight: '600' },
+  stepValue: { marginHorizontal: 12, fontSize: 16, fontWeight: '700' },
 
+  footer: { 
+    position: 'absolute', 
+    bottom: 0, 
+    left: 0, 
+    right: 0, 
+    padding: 24, 
+    backgroundColor: 'rgba(248, 249, 250, 0.98)' 
+  },
+  optionsCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  paymentSection: { paddingBottom: 4 },
+  commentSection: { paddingTop: 4 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  sectionTitle: { 
+    fontSize: 12, 
+    fontWeight: '700', 
+    color: '#8E8E93', 
+    marginLeft: 8, 
+    textTransform: 'uppercase', 
+    letterSpacing: 0.5 
+  },
+  
+  tabs: { flexDirection: 'row', backgroundColor: '#F8F9FA', borderRadius: 12, padding: 4 },
+  tab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10 },
+  tabActive: { backgroundColor: '#FFF', elevation: 2, shadowOpacity: 0.05 },
+  tabText: { fontSize: 14, fontWeight: '600', color: '#8E8E93' },
+  tabTextActive: { color: '#1C1C1E' },
+  
+  divider: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 16 },
+  input: { fontSize: 15, color: '#1C1C1E', paddingVertical: 4 },
+
+  checkoutContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  priceBlock: { flex: 1 },
+  totalLabel: { fontSize: 14, color: '#8E8E93', fontWeight: '500' },
+  totalValue: { fontSize: 24, fontWeight: '800', color: '#1C1C1E' },
+  payButton: { 
+    backgroundColor: colors.primary, 
+    paddingHorizontal: 32, 
+    paddingVertical: 16, 
+    borderRadius: 18,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  payButtonDisabled: { backgroundColor: '#E5E5EA', shadowOpacity: 0 },
+  payButtonText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+
+  emptyContainer: { alignItems: 'center', marginTop: 100 },
+  emptyEmoji: { fontSize: 50, marginBottom: 16 },
+  emptyText: { fontSize: 16, color: '#8E8E93', fontWeight: '500' },
+
+  toast: { 
+    position: 'absolute', 
+    bottom: 120, 
+    alignSelf: 'center', 
+    backgroundColor: '#1C1C1E', 
+    paddingHorizontal: 24, 
+    paddingVertical: 14, 
+    borderRadius: 30 
+  },
+  toastText: { color: '#FFF', fontWeight: '700' }
+});
