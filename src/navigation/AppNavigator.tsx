@@ -1,22 +1,26 @@
 import React from 'react';
-import { createMaterialTopTabNavigator, MaterialTopTabNavigationOptions } from '@react-navigation/material-top-tabs';
-import { View, StyleSheet, Platform, Dimensions } from 'react-native';
-import { Home, MapPin, ShoppingCart, User2 } from 'lucide-react-native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { View, Text, StyleSheet, Platform } from 'react-native';
+import { Home, List, ShoppingCart, User2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
 import { HomeScreen } from '../screens/HomeScreen';
 import { CartScreen } from '../screens/CartScreen';
-import { MapScreen } from '../screens/MapScreen';
+import { OrdersScreen } from '../screens/OrdersScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { AuthScreen } from '../screens/AuthScreen';
 import { useAuth } from '../hooks/useAuth';
+import { CartModal } from '../components/CartModal';
+import { useCartStore } from '../store/cartStore';
+import { useCartUIStore } from '../store/cartUIStore';
 
-const Tab = createMaterialTopTabNavigator();
-const { width } = Dimensions.get('window');
+const Tab = createBottomTabNavigator();
 
 export const AppNavigator = () => {
   const { isAuthenticated, isLoading, error, loginWithPhone, logout } = useAuth();
   const insets = useSafeAreaInsets();
+  const openCart = useCartUIStore((s) => s.openCart);
+  const cartCount = useCartStore((s) => s.items.reduce((sum, it) => sum + it.quantity, 0));
 
   if (!isAuthenticated) {
     return <AuthScreen onSubmit={loginWithPhone} isLoading={isLoading} error={error} />;
@@ -25,40 +29,66 @@ export const AppNavigator = () => {
   return (
     <View style={[styles.mainWrapper, { paddingTop: insets.top }]}>
       <Tab.Navigator
-        tabBarPosition="bottom"
-        initialRouteName="Home"
-        screenOptions={({ route }): MaterialTopTabNavigationOptions => ({
-          tabBarActiveTintColor: colors.primary || '#D17842',
-          tabBarInactiveTintColor: '#AEA9A9',
-          tabBarPressColor: 'transparent',
-          tabBarShowLabel: true,
-          tabBarShowIcon: true,
-          tabBarLabelStyle: styles.label,
-          tabBarIndicatorStyle: styles.indicator,
+        initialRouteName="Menu"
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: 'rgba(43, 33, 29, 0.45)',
           tabBarStyle: [
             styles.tabBar,
-            { marginBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 15) : 20 }
+            { marginBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 14) : 18 },
           ],
-          swipeEnabled: true,
-          tabBarIcon: ({ color }): React.ReactElement => {
-            const size = 20;
-            switch (route.name) {
-              case 'Home': return <Home color={color} size={size} />;
-              case 'Map': return <MapPin color={color} size={size} />;
-              case 'Cart': return <ShoppingCart color={color} size={size} />;
-              case 'Profile': return <User2 color={color} size={size} />;
-              default: return <View />;
-            }
-          },
-        })}
+          tabBarLabelStyle: styles.label,
+        }}
       >
-        <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Меню' }} />
-        <Tab.Screen name="Map" component={MapScreen} options={{ title: 'Где мы' }} />
-        <Tab.Screen name="Cart" component={CartScreen} options={{ title: 'Заказ' }} />
-        <Tab.Screen name="Profile" options={{ title: 'Я' }}>
+        <Tab.Screen
+          name="Menu"
+          component={HomeScreen}
+          options={{
+            title: 'Menu',
+            tabBarIcon: ({ color }) => <Home color={color} size={20} />,
+          }}
+        />
+
+        <Tab.Screen
+          name="Cart"
+          component={CartScreen}
+          listeners={{
+            tabPress: (e) => {
+              e.preventDefault();
+              openCart();
+            },
+          }}
+          options={{
+            title: 'Cart',
+            tabBarIcon: ({ color }) => (
+              <View style={styles.cartIconWrap}>
+                <ShoppingCart color={color} size={20} />
+                {cartCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{cartCount}</Text>
+                  </View>
+                )}
+              </View>
+            ),
+          }}
+        />
+
+        <Tab.Screen
+          name="Orders"
+          component={OrdersScreen}
+          options={{
+            title: 'Orders',
+            tabBarIcon: ({ color }) => <List color={color} size={20} />,
+          }}
+        />
+
+        <Tab.Screen name="Profile" options={{ title: 'Profile', tabBarIcon: ({ color }) => <User2 color={color} size={20} /> }}>
           {(props) => <ProfileScreen {...props} onLogout={logout} />}
         </Tab.Screen>
       </Tab.Navigator>
+
+      <CartModal />
     </View>
   );
 };
@@ -66,20 +96,20 @@ export const AppNavigator = () => {
 const styles = StyleSheet.create({
   mainWrapper: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
   },
   tabBar: {
-    height: 70,
-    marginHorizontal: 20,
+    height: 74,
+    marginHorizontal: 18,
     borderRadius: 25,
-    backgroundColor: '#FFFFFF',
-    elevation: 8,
+    backgroundColor: 'rgba(255,255,255,0.92)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.10,
+    shadowRadius: 18,
+    elevation: 10,
     borderWidth: 1,
-    borderColor: '#F2F2F7',
+    borderColor: 'rgba(43, 33, 29, 0.10)',
   },
   label: {
     fontSize: 10,
@@ -89,12 +119,30 @@ const styles = StyleSheet.create({
     padding: 0,
     marginBottom: 2,
   },
-  indicator: {
-    backgroundColor: colors.primary || '#D17842',
-    height: 3,
-    width: 40,
-    borderRadius: 10,
-    left: ((width - 40) / 4 - 40) / 20, 
-    top: 0, 
+  cartIconWrap: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badge: {
+    position: 'absolute',
+    top: -6,
+    right: -10,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 5,
+    borderRadius: 999,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.95)',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.2,
   },
 });

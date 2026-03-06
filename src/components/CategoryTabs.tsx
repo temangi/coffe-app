@@ -22,14 +22,13 @@ export const CategoryTabs: React.FC<Props> = ({ categories, selected, onSelect }
           return (
             <TouchableOpacity
               key={cat}
-              activeOpacity={0.7}
+              activeOpacity={0.85}
               onPress={() => onSelect(cat)}
               style={[
                 styles.chip,
                 isActive ? styles.chipActive : styles.chipInactive
               ]}
             >
-              {isActive && <View style={styles.dot} />}
               <Text style={[
                 styles.chipText, 
                 isActive ? styles.chipTextActive : styles.chipTextInactive
@@ -46,55 +45,40 @@ export const CategoryTabs: React.FC<Props> = ({ categories, selected, onSelect }
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginVertical: 10,
+    marginTop: 6,
+    marginBottom: 8,
   },
   container: {
-    paddingHorizontal: 20, // Совпадает с отступами заголовка в HomeScreen
-    paddingVertical: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 6,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
     marginRight: 10,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    borderWidth: 1,
   },
   chipActive: {
-    backgroundColor: '#1C1C1E', // Темный акцент или colors.primary
+    backgroundColor: 'rgba(224, 122, 47, 0.10)',
+    borderColor: 'rgba(224, 122, 47, 0.45)',
   },
   chipInactive: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.primary || '#D17842',
-    marginRight: 8,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderColor: 'rgba(43, 33, 29, 0.10)',
   },
   chipText: {
-    fontSize: 15,
-    fontWeight: '600',
-    letterSpacing: 0.3,
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   chipTextActive: {
-    color: '#FFFFFF',
+    color: colors.text,
   },
   chipTextInactive: {
-    color: '#8E8E93',
+    color: colors.textMuted,
   },
 });

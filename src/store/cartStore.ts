@@ -1,17 +1,17 @@
 import { create } from 'zustand';
-import type { CartItem, Product, Order } from '../types';
+import type { CartItem, Order, PaymentMethod, PortionOption, Product } from '../types';
 
 interface CartState {
   items: CartItem[];
   lastOrder?: Order;
-  addToCart: (product: Product) => void;
-  increaseQuantity: (productId: string) => void;
-  decreaseQuantity: (productId: string) => void;
-  removeFromCart: (productId: string) => void;
+  addToCart: (payload: { product: Product; option: PortionOption }) => void;
+  increaseQuantity: (payload: { productId: string; optionId: string }) => void;
+  decreaseQuantity: (payload: { productId: string; optionId: string }) => void;
+  removeFromCart: (payload: { productId: string; optionId: string }) => void;
   clearCart: () => void;
   totalPrice: () => number;
   createOrderMock: (payload: {
-    paymentMethod: 'card' | 'cash';
+    paymentMethod: PaymentMethod;
     comment?: string;
   }) => Order;
 }
@@ -19,46 +19,48 @@ interface CartState {
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
 
-  addToCart: (product) =>
+  addToCart: ({ product, option }) =>
     set((state) => {
-      const existing = state.items.find((i) => i.product.id === product.id);
+      const existing = state.items.find(
+        (i) => i.product.id === product.id && i.option.id === option.id,
+      );
       if (existing) {
         return {
           items: state.items.map((i) =>
-            i.product.id === product.id
+            i.product.id === product.id && i.option.id === option.id
               ? { ...i, quantity: i.quantity + 1 }
               : i,
           ),
         };
       }
       return {
-        items: [...state.items, { product, quantity: 1 }],
+        items: [...state.items, { product, option, quantity: 1 }],
       };
     }),
 
-  increaseQuantity: (productId) =>
+  increaseQuantity: ({ productId, optionId }) =>
     set((state) => ({
       items: state.items.map((i) =>
-        i.product.id === productId
+        i.product.id === productId && i.option.id === optionId
           ? { ...i, quantity: i.quantity + 1 }
           : i,
       ),
     })),
 
-  decreaseQuantity: (productId) =>
+  decreaseQuantity: ({ productId, optionId }) =>
     set((state) => ({
       items: state.items
         .map((i) =>
-          i.product.id === productId
+          i.product.id === productId && i.option.id === optionId
             ? { ...i, quantity: i.quantity - 1 }
             : i,
         )
         .filter((i) => i.quantity > 0),
     })),
 
-  removeFromCart: (productId) =>
+  removeFromCart: ({ productId, optionId }) =>
     set((state) => ({
-      items: state.items.filter((i) => i.product.id !== productId),
+      items: state.items.filter((i) => !(i.product.id === productId && i.option.id === optionId)),
     })),
 
   clearCart: () => set({ items: [] }),
@@ -66,7 +68,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   totalPrice: () => {
     const { items } = get();
     return items.reduce(
-      (sum, item) => sum + item.product.price * item.quantity,
+      (sum, item) => sum + item.option.price * item.quantity,
       0,
     );
   },
