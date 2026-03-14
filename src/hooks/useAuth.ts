@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useProfileStore } from '../store/profileStore';
+import { useAppUiStore } from '../store/appUiStore';
+import { translate } from '../i18n/dictionary';
 
 export const useAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -8,6 +10,7 @@ export const useAuth = () => {
   
   const setProfile = useProfileStore((s) => s.setProfile);
   const logoutProfile = useProfileStore((s) => s.logout);
+  const language = useAppUiStore((s) => s.language);
 
   const loginWithPhone = useCallback(
     async (phone: string) => {
@@ -15,37 +18,34 @@ export const useAuth = () => {
       setError(null);
 
       try {
-        // Очищаем номер от всего, кроме цифр
         const digits = phone.replace(/\D/g, '');
+        const normalized = digits.startsWith('996')
+          ? digits
+          : digits.startsWith('0')
+            ? `996${digits.slice(1)}`
+            : digits;
 
-        // Валидация для Кыргызстана: 
-        // Должно быть либо 996XXXXXXXXX (12 цифр), либо 0XXXXXXXXX (10 цифр)
-        if (digits.length === 12 && !digits.startsWith('996')) {
-           throw new Error('Код страны должен быть 996');
-        }
-        
-        if (digits.length < 10) {
-          throw new Error('Номер слишком короткий');
+        // KG format: 996 + 9 digits
+        const isValidKg = /^996\d{9}$/.test(normalized);
+        if (!isValidKg) {
+          throw new Error(translate(language, 'auth.invalidPhone'));
         }
 
-        // Имитируем запрос к серверу (например, проверку OTP кода)
         await new Promise((resolve) => setTimeout(resolve, 1500));
 
-        // В реальности здесь был бы запрос к Firebase/Supabase
-        // Сейчас просто пускаем пользователя
         setIsAuthenticated(true);
         setProfile({ 
-          name: 'Местный бариста', 
-          phone: `+${digits.startsWith('996') ? digits : '996' + digits.slice(1)}` 
+          name: 'Гость Faiza',
+          phone: `+${normalized}`,
         });
 
       } catch (e: any) {
-        setError(e.message ?? 'Ошибка входа');
+        setError(e.message ?? translate(language, 'auth.genericError'));
       } finally {
         setIsLoading(false);
       }
     },
-    [setProfile],
+    [language, setProfile],
   );
 
   const logout = useCallback(() => {

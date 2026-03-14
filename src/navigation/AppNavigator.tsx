@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Coffee, Home, List, ShoppingCart, User2 } from 'lucide-react-native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Coffee, Home, List, User2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../hooks/useAuth';
 import { colors } from '../theme/colors';
@@ -17,70 +18,98 @@ import { OrderConfirmationScreen } from '../screens/OrderConfirmationScreen';
 import { OrderTrackingScreen } from '../screens/OrderTrackingScreen';
 import { OrdersScreen } from '../screens/OrdersScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
-import { useCartStore } from '../store/cartStore';
 import { useI18n } from '../i18n/useI18n';
 import { fontFamily } from '../theme/typography';
 
-const Tab = createBottomTabNavigator();
+type RootStackParamList = {
+  Tabs: undefined;
+  Customize: undefined;
+  Cart: undefined;
+  Delivery: undefined;
+  Payment: undefined;
+  Confirmation: undefined;
+  Tracking: undefined;
+};
 
-const hiddenOptions = {
-  tabBarButton: () => null,
-  tabBarItemStyle: { display: 'none' as const },
+const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
+
+const MainTabs: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
+  const insets = useSafeAreaInsets();
+  const { t } = useI18n();
+
+  return (
+    <Tab.Navigator
+      initialRouteName="Home"
+      screenOptions={{
+        headerShown: false,
+        animation: 'shift',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: 'rgba(42,28,28,0.45)',
+        tabBarStyle: [styles.tabBar, { marginBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 10) : 12 }],
+        tabBarLabelStyle: styles.label,
+      }}
+    >
+      <Tab.Screen name="Home" component={HomeScreen} options={{ title: t('nav.home'), tabBarIcon: ({ color }) => <Home color={color} size={20} /> }} />
+      <Tab.Screen name="Menu" component={MenuScreen} options={{ title: t('nav.menu'), tabBarIcon: ({ color }) => <Coffee color={color} size={20} /> }} />
+      <Tab.Screen name="Orders" component={OrdersScreen} options={{ title: t('nav.orders'), tabBarIcon: ({ color }) => <List color={color} size={20} /> }} />
+      <Tab.Screen name="Profile" options={{ title: t('nav.profile'), tabBarIcon: ({ color }) => <User2 color={color} size={20} /> }}>
+        {(props) => <ProfileScreen {...props} onLogout={onLogout} />}
+      </Tab.Screen>
+    </Tab.Navigator>
+  );
 };
 
 export const AppNavigator: React.FC = () => {
   const { isAuthenticated, isLoading, error, loginWithPhone, logout } = useAuth();
-  const insets = useSafeAreaInsets();
-  const cartCount = useCartStore((s) => s.items.reduce((sum, line) => sum + line.quantity, 0));
-  const { t } = useI18n();
 
   if (!isAuthenticated) {
     return <AuthScreen onSubmit={loginWithPhone} isLoading={isLoading} error={error} />;
   }
 
   return (
-    <View style={[styles.wrapper, { paddingTop: insets.top }]}>
-      <Tab.Navigator
-        initialRouteName="Home"
+    <View style={styles.wrapper}>
+      <Stack.Navigator
+        initialRouteName="Tabs"
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: colors.primary,
-          tabBarInactiveTintColor: 'rgba(42,28,28,0.45)',
-          tabBarStyle: [styles.tabBar, { marginBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 10) : 12 }],
-          tabBarLabelStyle: styles.label,
+          animation: 'simple_push',
+          gestureEnabled: true,
+          fullScreenGestureEnabled: true,
         }}
       >
-        <Tab.Screen name="Home" component={HomeScreen} options={{ title: t('nav.home'), tabBarIcon: ({ color }) => <Home color={color} size={20} /> }} />
-        <Tab.Screen name="Menu" component={MenuScreen} options={{ title: t('nav.menu'), tabBarIcon: ({ color }) => <Coffee color={color} size={20} /> }} />
-        <Tab.Screen name="Orders" component={OrdersScreen} options={{ title: t('nav.orders'), tabBarIcon: ({ color }) => <List color={color} size={20} /> }} />
-        <Tab.Screen name="Profile" options={{ title: t('nav.profile'), tabBarIcon: ({ color }) => <User2 color={color} size={20} /> }}>
-          {(props) => <ProfileScreen {...props} onLogout={logout} />}
-        </Tab.Screen>
-
-        <Tab.Screen
-          name="Cart"
-          component={CartScreen}
+        <Stack.Screen name="Tabs">{() => <MainTabs onLogout={logout} />}</Stack.Screen>
+        <Stack.Screen name="Customize" component={ProductCustomizationScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="Cart" component={CartScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen
+          name="Delivery"
+          component={DeliveryLocationScreen}
           options={{
-            ...hiddenOptions,
-            title: 'Cart',
-            tabBarIcon: ({ color }) => (
-              <View style={styles.cartIconWrap}>
-                <ShoppingCart color={color} size={20} />
-                {cartCount > 0 && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{cartCount}</Text>
-                  </View>
-                )}
-              </View>
-            ),
+            presentation: 'containedModal',
+            animation: 'slide_from_bottom',
+            gestureDirection: 'vertical',
           }}
         />
-        <Tab.Screen name="Customize" component={ProductCustomizationScreen} options={hiddenOptions} />
-        <Tab.Screen name="Delivery" component={DeliveryLocationScreen} options={hiddenOptions} />
-        <Tab.Screen name="Payment" component={PaymentSelectionScreen} options={hiddenOptions} />
-        <Tab.Screen name="Confirmation" component={OrderConfirmationScreen} options={hiddenOptions} />
-        <Tab.Screen name="Tracking" component={OrderTrackingScreen} options={hiddenOptions} />
-      </Tab.Navigator>
+        <Stack.Screen
+          name="Payment"
+          component={PaymentSelectionScreen}
+          options={{
+            presentation: 'containedModal',
+            animation: 'slide_from_bottom',
+            gestureDirection: 'vertical',
+          }}
+        />
+        <Stack.Screen
+          name="Confirmation"
+          component={OrderConfirmationScreen}
+          options={{
+            presentation: 'containedModal',
+            animation: 'fade_from_bottom',
+            gestureDirection: 'vertical',
+          }}
+        />
+        <Stack.Screen name="Tracking" component={OrderTrackingScreen} options={{ animation: 'slide_from_right' }} />
+      </Stack.Navigator>
     </View>
   );
 };
@@ -100,8 +129,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(179,35,43,0.18)',
   },
-  label: { fontSize: 11, fontFamily: fontFamily.semibold, marginBottom: 2 },
-  cartIconWrap: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  // Use system font here because tab labels are localized (ru/kg/en),
+  // and system fonts guarantee Cyrillic/Kyrgyz glyph coverage.
+  label: { fontSize: 11, fontWeight: '700', marginBottom: 2 },
   badge: {
     position: 'absolute',
     top: -6,
