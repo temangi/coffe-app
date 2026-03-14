@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, FlatList, Image, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { SlidersHorizontal } from 'lucide-react-native';
 import { MENU_CATEGORIES, MENU_ITEMS } from '../menu';
 import type { Category } from '../types';
@@ -19,8 +19,41 @@ export const MenuScreen: React.FC = () => {
   const { t } = useI18n();
 
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState<Category>((route.params?.category as Category) ?? MENU_CATEGORIES[0]);
+  const normalizeText = useCallback((value: unknown) => String(value ?? '').trim().toLowerCase(), []);
+
+  const resolveCategory = useCallback(
+    (raw: unknown): Category => {
+      const extracted =
+        typeof raw === 'string'
+          ? raw
+          : typeof raw === 'object' && raw !== null
+            ? ((raw as { name?: string; title?: string; category?: string }).name ??
+              (raw as { title?: string }).title ??
+              (raw as { category?: string }).category ??
+              '')
+            : '';
+
+      const found = MENU_CATEGORIES.find((item) => normalizeText(item) === normalizeText(extracted));
+      return (found ?? MENU_CATEGORIES[0]) as Category;
+    },
+    [normalizeText],
+  );
+
+  const incomingCategory = route.params?.category;
+  const [category, setCategory] = useState<Category>(resolveCategory(incomingCategory));
   const listAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    setCategory(resolveCategory(incomingCategory));
+  }, [incomingCategory, resolveCategory]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (incomingCategory !== undefined) {
+        setCategory(resolveCategory(incomingCategory));
+      }
+    }, [incomingCategory, resolveCategory]),
+  );
 
   useEffect(() => {
     listAnim.setValue(0);
@@ -32,13 +65,14 @@ export const MenuScreen: React.FC = () => {
   }, [category, listAnim]);
 
   const data = useMemo(() => {
+    const normalizedCategory = normalizeText(category);
     return MENU_ITEMS.filter((item) => {
-      if (item.category !== category) return false;
+      if (normalizeText(item.category) !== normalizedCategory) return false;
       const normalized = query.trim().toLowerCase();
       if (!normalized) return true;
       return item.name.toLowerCase().includes(normalized) || item.description.toLowerCase().includes(normalized);
     });
-  }, [category, query]);
+  }, [category, normalizeText, query]);
 
   return (
     <SafeAreaView style={styles.safe}>
