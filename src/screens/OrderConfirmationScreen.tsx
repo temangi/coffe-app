@@ -36,7 +36,10 @@ export const OrderConfirmationScreen: React.FC = () => {
       </View>
 
       <View style={[styles.actions, { paddingHorizontal: horizontal }]}> 
-        <Pressable style={withPressFeedback(styles.secondaryBtn)} onPress={() => navigation.navigate('Menu')}>
+        <Pressable
+          style={withPressFeedback(styles.secondaryBtn)}
+          onPress={() => navigation.navigate('Tabs', { screen: 'Menu' })}
+        >
           <Text style={styles.secondaryText}>{t('confirmation.reorderLater')}</Text>
         </Pressable>
         <Pressable style={withPressFeedback(styles.primaryBtn)} onPress={() => navigation.navigate('Tracking')}>
