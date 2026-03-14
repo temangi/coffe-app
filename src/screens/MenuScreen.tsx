@@ -51,21 +51,23 @@ export const MenuScreen: React.FC = () => {
         </Pressable>
       </View>
 
-      <FlatList
-        horizontal
-        data={MENU_CATEGORIES}
-        keyExtractor={(item) => item}
-        contentContainerStyle={[styles.chipsRow, { paddingHorizontal: horizontal }]}
-        showsHorizontalScrollIndicator={false}
-        renderItem={({ item: chip }) => {
-          const active = chip === category;
-          return (
-            <Pressable style={withPressFeedback([styles.chip, active && styles.chipActive])} onPress={() => setCategory(chip)}>
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{chip}</Text>
-            </Pressable>
-          );
-        }}
-      />
+      <View>
+        <FlatList
+          horizontal
+          data={MENU_CATEGORIES}
+          keyExtractor={(item) => item}
+          contentContainerStyle={[styles.chipsRow, { paddingHorizontal: horizontal }]}
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item: chip }) => {
+            const active = chip === category;
+            return (
+              <Pressable style={withPressFeedback([styles.chip, active && styles.chipActive])} onPress={() => setCategory(chip)}>
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{chip}</Text>
+              </Pressable>
+            );
+          }}
+        />
+      </View>
 
       <Animated.View
         style={[
