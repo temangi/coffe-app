@@ -52,7 +52,10 @@ export const OrderTrackingScreen: React.FC = () => {
       </View>
 
       <View style={[styles.bottomActions, { paddingHorizontal: horizontal }]}>
-        <Pressable style={withPressFeedback(styles.secondaryBtn)} onPress={() => navigation.navigate('Orders')}>
+        <Pressable
+          style={withPressFeedback(styles.secondaryBtn)}
+          onPress={() => navigation.navigate('Tabs', { screen: 'Orders' })}
+        >
           <Text style={styles.secondaryText}>{t('tracking.history')}</Text>
         </Pressable>
         <Pressable style={withPressFeedback(styles.primaryBtn)} onPress={() => setStep((prev) => (prev >= statuses.length - 1 ? prev : prev + 1))}>
