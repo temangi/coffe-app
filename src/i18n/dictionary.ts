@@ -7,6 +7,17 @@ interface Dict {
 export const dictionary: Record<AppLanguage, Dict> = {
   ru: {
     nav: { home: 'Главная', menu: 'Меню', orders: 'Заказы', profile: 'Профиль' },
+    auth: {
+      title: 'Вход',
+      subtitle: 'Введите номер телефона для продолжения',
+      phoneLabel: 'Телефон',
+      phonePlaceholder: '+996 (___) __-__-__',
+      submit: 'Войти',
+      loading: 'Проверяем...',
+      helper: 'Мы отправим код подтверждения по SMS',
+      invalidPhone: 'Введите корректный номер Кыргызстана',
+      genericError: 'Не удалось войти. Попробуйте еще раз.',
+    },
     common: {
       openMenu: 'Открыть меню',
       addToCart: 'Добавить в корзину',
@@ -79,6 +90,17 @@ export const dictionary: Record<AppLanguage, Dict> = {
   },
   kg: {
     nav: { home: 'Башкы', menu: 'Меню', orders: 'Буйрутмалар', profile: 'Профиль' },
+    auth: {
+      title: 'Кирүү',
+      subtitle: 'Улантуу үчүн телефон номериңизди киргизиңиз',
+      phoneLabel: 'Телефон',
+      phonePlaceholder: '+996 (___) __-__-__',
+      submit: 'Кирүү',
+      loading: 'Текшерилүүдө...',
+      helper: 'SMS аркылуу ырастоо коду жөнөтүлөт',
+      invalidPhone: 'Кыргызстан номери туура киргизилсин',
+      genericError: 'Кирүү мүмкүн болгон жок. Кайра аракет кылыңыз.',
+    },
     common: { openMenu: 'Менюну ачуу', addToCart: 'Себетке кошуу', continueToPayment: 'Төлөмгө өтүү', setDeliveryAddress: 'Даректи көрсөтүү', placeOrder: 'Буйрутма берүү' },
     home: { title: 'Башкы', subtitle: 'Faiza фирмалык тамактары', heroKicker: 'Faiza ресторанынын менюсу', heroTitle: 'Даамдуу, тез, жеткирүү менен', heroSubtitle: 'Буйрутманы бир нече кадамда жасап, статусун көзөмөлдөңүз.', reorder: 'Кайра', favorites: 'Сүйүктүүлөр', qrPay: 'QR төлөм', categories: 'Категориялар', popular: 'Азыр популярдуу' },
     menu: { title: 'Faiza Меню', subtitle: 'Бардык категориялар жана баалар', search: 'Тамак издөө', details: 'Толугураак', toCart: 'Себетке', from: 'баштап', min: 'мүн' },
@@ -93,6 +115,17 @@ export const dictionary: Record<AppLanguage, Dict> = {
   },
   en: {
     nav: { home: 'Home', menu: 'Menu', orders: 'Orders', profile: 'Profile' },
+    auth: {
+      title: 'Sign in',
+      subtitle: 'Enter your phone number to continue',
+      phoneLabel: 'Phone',
+      phonePlaceholder: '+996 (___) __-__-__',
+      submit: 'Sign in',
+      loading: 'Verifying...',
+      helper: 'We will send a confirmation code via SMS',
+      invalidPhone: 'Enter a valid Kyrgyzstan phone number',
+      genericError: 'Sign-in failed. Please try again.',
+    },
     common: { openMenu: 'Open menu', addToCart: 'Add to cart', continueToPayment: 'Continue to payment', setDeliveryAddress: 'Set delivery address', placeOrder: 'Place order' },
     home: { title: 'Home', subtitle: 'Signature dishes and quick ordering', heroKicker: 'Faiza restaurant menu', heroTitle: 'Tasty, fast, delivered', heroSubtitle: 'Place your order in a few taps and track status online.', reorder: 'Reorder', favorites: 'Favorites', qrPay: 'QR Pay', categories: 'Categories', popular: 'Popular now' },
     menu: { title: 'Faiza Menu', subtitle: 'All categories and current prices', search: 'Search dish', details: 'Details', toCart: 'To cart', from: 'from', min: 'min' },

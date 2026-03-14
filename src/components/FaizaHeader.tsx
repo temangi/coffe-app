@@ -1,6 +1,5 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { SvgUri } from 'react-native-svg';
 import { colors } from '../theme/colors';
 import { useAppUiStore } from '../store/appUiStore';
 import { withPressFeedback } from '../theme/interaction';
@@ -27,7 +26,8 @@ export const FaizaHeader: React.FC<FaizaHeaderProps> = ({ title, subtitle }) => 
     <View style={[styles.wrapper, { paddingHorizontal: horizontal }]}>
       <View style={styles.topRow}>
         <View style={styles.logoWrap}>
-          <SvgUri uri="https://faiza.kg/logo-top.svg" width={150} height={40} />
+          <Text style={styles.brandTitle}>FAIZA</Text>
+          <Text style={styles.brandSub}>restaurant</Text>
         </View>
 
         <View style={styles.langWrap}>
@@ -61,8 +61,22 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   logoWrap: {
-    height: 44,
+    height: 46,
     justifyContent: 'center',
+  },
+  brandTitle: {
+    color: colors.primary,
+    fontFamily: fontFamily.bold,
+    fontSize: 23,
+    letterSpacing: 1.2,
+  },
+  brandSub: {
+    marginTop: -2,
+    color: colors.textMuted,
+    fontFamily: fontFamily.regular,
+    fontSize: 11,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
   langWrap: {
     flexDirection: 'row',
