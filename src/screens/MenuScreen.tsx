@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { FlatList, Image, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, FlatList, Image, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SlidersHorizontal } from 'lucide-react-native';
@@ -20,6 +20,16 @@ export const MenuScreen: React.FC = () => {
 
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<Category>((route.params?.category as Category) ?? MENU_CATEGORIES[0]);
+  const listAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    listAnim.setValue(0);
+    Animated.timing(listAnim, {
+      toValue: 1,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+  }, [category, listAnim]);
 
   const data = useMemo(() => {
     return MENU_ITEMS.filter((item) => {
@@ -57,30 +67,47 @@ export const MenuScreen: React.FC = () => {
         }}
       />
 
-      <FlatList
-        data={data}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={[styles.listContent, { paddingHorizontal: horizontal }]}
-        showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Image source={{ uri: item.imageUrl }} style={styles.photo} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.note} numberOfLines={2}>{item.description}</Text>
-              <Text style={styles.meta}>{t('menu.from')} {item.price} сом • ~{item.prepTimeMin ?? 12} {t('menu.min')}</Text>
-              <View style={styles.actions}>
-                <Pressable style={withPressFeedback(styles.ghostButton)} onPress={() => navigation.navigate('Customize', { productId: item.id })}>
-                  <Text style={styles.ghostButtonText}>{t('menu.details')}</Text>
-                </Pressable>
-                <Pressable style={withPressFeedback(styles.addButton)} onPress={() => navigation.navigate('Customize', { productId: item.id })}>
-                  <Text style={styles.addButtonText}>{t('menu.toCart')}</Text>
-                </Pressable>
+      <Animated.View
+        style={[
+          styles.listAnimatedWrap,
+          {
+            opacity: listAnim,
+            transform: [
+              {
+                translateY: listAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [8, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <FlatList
+          data={data}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={[styles.listContent, { paddingHorizontal: horizontal }]}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <Image source={{ uri: item.imageUrl }} style={styles.photo} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name}>{item.name}</Text>
+                <Text style={styles.note} numberOfLines={2}>{item.description}</Text>
+                <Text style={styles.meta}>{t('menu.from')} {item.price} сом • ~{item.prepTimeMin ?? 12} {t('menu.min')}</Text>
+                <View style={styles.actions}>
+                  <Pressable style={withPressFeedback(styles.ghostButton)} onPress={() => navigation.navigate('Customize', { productId: item.id })}>
+                    <Text style={styles.ghostButtonText}>{t('menu.details')}</Text>
+                  </Pressable>
+                  <Pressable style={withPressFeedback(styles.addButton)} onPress={() => navigation.navigate('Customize', { productId: item.id })}>
+                    <Text style={styles.addButtonText}>{t('menu.toCart')}</Text>
+                  </Pressable>
+                </View>
               </View>
             </View>
-          </View>
-        )}
-      />
+          )}
+        />
+      </Animated.View>
     </SafeAreaView>
   );
 };
@@ -109,6 +136,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   chipsRow: { gap: 8, marginTop: 10, paddingBottom: 2 },
+  listAnimatedWrap: { flex: 1 },
   chip: { backgroundColor: '#F2E9E1', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: colors.border },
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { color: colors.primary, fontFamily: fontFamily.semibold, fontSize: 12 },

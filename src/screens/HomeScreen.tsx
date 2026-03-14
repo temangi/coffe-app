@@ -34,7 +34,10 @@ export const HomeScreen: React.FC = () => {
             <Text style={styles.greeting}>{t('home.heroKicker')}</Text>
             <Text style={styles.heroTitle}>{t('home.heroTitle')}</Text>
             <Text style={styles.heroSubtitle}>{t('home.heroSubtitle')}</Text>
-            <Pressable style={withPressFeedback(styles.heroCta)} onPress={() => navigation.navigate('Menu')}>
+            <Pressable
+              style={withPressFeedback(styles.heroCta)}
+              onPress={() => navigation.navigate('Tabs', { screen: 'Menu' })}
+            >
               <Text style={styles.heroCtaText}>{t('common.openMenu')}</Text>
             </Pressable>
           </View>
@@ -49,7 +52,11 @@ export const HomeScreen: React.FC = () => {
         <Text style={styles.sectionTitle}>{t('home.categories')}</Text>
         <View style={styles.chipsRow}>
           {MENU_CATEGORIES.map((category) => (
-            <Pressable key={category} style={withPressFeedback(styles.chip)} onPress={() => navigation.navigate('Menu', { category })}>
+            <Pressable
+              key={category}
+              style={withPressFeedback(styles.chip)}
+              onPress={() => navigation.navigate('Tabs', { screen: 'Menu', params: { category } })}
+            >
               <Text style={styles.chipText}>{category}</Text>
             </Pressable>
           ))}
