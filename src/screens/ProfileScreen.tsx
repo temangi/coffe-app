@@ -1,37 +1,24 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  Switch,
-  ScrollView,
-  Image,
-} from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import { Bell, Camera, LogOut, Mail, ShoppingBag, User } from 'lucide-react-native';
 import { useProfileStore } from '../store/profileStore';
 import { colors } from '../theme/colors';
-import { User, Camera, Bell, LogOut, ChevronRight, Mail, Phone, ShoppingBag } from 'lucide-react-native';
+import { FaizaHeader } from '../components/FaizaHeader';
+import { useI18n } from '../i18n/useI18n';
+import { withPressFeedback } from '../theme/interaction';
 
 interface ProfileScreenProps {
   onLogout: () => void;
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
-  const {
-    name,
-    phone,
-    email,
-    avatarUri,
-    notificationsEnabled,
-    orders,
-    setProfile,
-    setNotificationsEnabled,
-  } = useProfileStore();
+  const { width } = useWindowDimensions();
+  const horizontal = useMemo(() => (width >= 768 ? 28 : 16), [width]);
+  const { t } = useI18n();
+
+  const { name, phone, email, avatarUri, notificationsEnabled, orders, setProfile, setNotificationsEnabled } = useProfileStore();
 
   const [localName, setLocalName] = useState(name || '');
   const [localEmail, setLocalEmail] = useState(email || '');
@@ -40,14 +27,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
   const handlePickAvatar = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') return;
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.8 });
     if (!result.canceled && result.assets[0]?.uri) {
       setProfile({ avatarUri: result.assets[0].uri });
     }
@@ -59,233 +39,141 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onLogout }) => {
       return true;
     }
     const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-    setEmailError(isValid ? null : 'Введите корректный email');
+    setEmailError(isValid ? null : t('profile.invalidEmail'));
     return isValid;
   }, []);
 
   const handleSaveProfile = useCallback(() => {
     if (!validateEmail(localEmail)) return;
-    setProfile({
-      name: localName.trim() || 'Местный бариста',
-      email: localEmail.trim(),
-    });
+    setProfile({ name: localName.trim() || 'Гость Faiza', email: localEmail.trim() });
   }, [localEmail, localName, setProfile, validateEmail]);
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView 
-        style={{ flex: 1 }} 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView 
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          {/* Header Section */}
-          <View style={styles.header}>
-            <View style={styles.avatarContainer}>
-              <View style={styles.avatarCircle}>
-                {avatarUri ? (
-                  <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
-                ) : (
-                  <User color="#FFFFFF" size={40} />
-                )}
-              </View>
-              <TouchableOpacity style={styles.cameraButton} onPress={handlePickAvatar}>
-                <Camera color="#FFF" size={16} />
-              </TouchableOpacity>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <FaizaHeader title={t('profile.title')} subtitle={t('profile.subtitle')} />
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { paddingHorizontal: horizontal }]}> 
+          <View style={styles.profileCard}>
+            <View style={styles.avatarWrap}>
+              {avatarUri ? <Image source={{ uri: avatarUri }} style={styles.avatarImage} /> : <User color="#FFF" size={34} />}
+              <Pressable style={styles.cameraBtn} onPress={handlePickAvatar}>
+                <Camera size={14} color="#FFF" />
+              </Pressable>
             </View>
-            <Text style={styles.userName}>{name || 'Местный бариста'}</Text>
-            <Text style={styles.userPhone}>{phone || 'Номер не указан'}</Text>
+            <Text style={styles.name}>{name || 'Гость Faiza'}</Text>
+            <Text style={styles.phone}>{phone || t('profile.noPhone')}</Text>
           </View>
 
-          {/* Main Info Card */}
           <View style={styles.card}>
-            <View style={styles.inputRow}>
-              <User size={20} color={colors.primary} style={styles.inputIcon} />
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>Имя</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={localName}
-                  onChangeText={setLocalName}
-                  placeholder="Ваше имя"
-                />
-              </View>
-            </View>
-            
+            <InputRow label={t('profile.name')} icon={<User size={18} color={colors.primary} />}>
+              <TextInput value={localName} onChangeText={setLocalName} placeholder="Ваше имя" placeholderTextColor={colors.textMuted} style={styles.input} />
+            </InputRow>
+
             <View style={styles.divider} />
-            
-            <View style={styles.inputRow}>
-              <Mail size={20} color={colors.primary} style={styles.inputIcon} />
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>Email</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={localEmail}
-                  onChangeText={(val) => {
-                    setLocalEmail(val);
-                    if (emailError) validateEmail(val);
-                  }}
-                  placeholder="example@coffee.kg"
-                  autoCapitalize="none"
-                />
-              </View>
-            </View>
-          </View>
-          {emailError && <Text style={styles.errorText}>{emailError}</Text>}
 
-          <TouchableOpacity style={styles.saveAction} onPress={handleSaveProfile}>
-            <Text style={styles.saveActionText}>Обновить профиль</Text>
-          </TouchableOpacity>
-
-          {/* Settings Section */}
-          <Text style={styles.sectionHeader}>Настройки</Text>
-          <View style={styles.card}>
-            <View style={styles.preferenceRow}>
-              <View style={styles.preferenceInfo}>
-                <View style={[styles.iconBox, { backgroundColor: '#F0F7FF' }]}>
-                  <Bell size={20} color="#007AFF" />
-                </View>
-                <Text style={styles.preferenceTitle}>Уведомления</Text>
-              </View>
-              <Switch
-                value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
-                trackColor={{ false: '#D1D1D6', true: colors.primary }}
-                thumbColor={Platform.OS === 'android' ? '#FFF' : undefined}
+            <InputRow label={t('profile.email')} icon={<Mail size={18} color={colors.primary} />}>
+              <TextInput
+                value={localEmail}
+                onChangeText={(val) => {
+                  setLocalEmail(val);
+                  if (emailError) validateEmail(val);
+                }}
+                placeholder="example@faiza.kg"
+                autoCapitalize="none"
+                placeholderTextColor={colors.textMuted}
+                style={styles.input}
               />
+            </InputRow>
+          </View>
+
+          {emailError ? <Text style={styles.error}>{emailError}</Text> : null}
+
+          <Pressable style={withPressFeedback(styles.saveBtn)} onPress={handleSaveProfile}>
+            <Text style={styles.saveText}>{t('profile.save')}</Text>
+          </Pressable>
+
+          <View style={styles.card}>
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <View style={styles.iconCircle}>
+                  <Bell size={18} color={colors.primary} />
+                </View>
+                <Text style={styles.settingTitle}>{t('profile.notifications')}</Text>
+              </View>
+              <Switch value={notificationsEnabled} onValueChange={setNotificationsEnabled} trackColor={{ false: '#D6CFCA', true: colors.primary }} thumbColor={Platform.OS === 'android' ? '#FFF' : undefined} />
             </View>
           </View>
 
-          {/* Orders Section */}
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionHeader}>История заказов</Text>
-            <ShoppingBag size={18} color={colors.textMuted} />
-          </View>
-          
-          <View style={styles.ordersList}>
+          <Text style={styles.sectionTitle}>{t('profile.history')}</Text>
+          <View style={styles.card}>
             {orders.length > 0 ? (
-              orders.map((order) => (
-                <TouchableOpacity key={order.id} style={styles.orderItem}>
-                  <View style={styles.orderIconBox}>
-                    <Text style={{ fontSize: 18 }}>☕️</Text>
+              orders.slice(0, 4).map((order) => (
+                <View key={order.id} style={styles.orderRow}>
+                  <View style={styles.orderIcon}>
+                    <ShoppingBag size={15} color={colors.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.orderIdText}>Заказ #{order.id.slice(-4)}</Text>
-                    <Text style={styles.orderDateText}>
-                      {new Date(order.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
-                    </Text>
+                    <Text style={styles.orderTitle}>Заказ #{order.id.slice(-4)}</Text>
+                    <Text style={styles.orderMeta}>{new Date(order.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</Text>
                   </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={styles.orderAmount}>{order.total} ⃀</Text>
-                    <ChevronRight size={16} color="#C7C7CC" />
-                  </View>
-                </TouchableOpacity>
+                  <Text style={styles.orderAmount}>{order.total} сом</Text>
+                </View>
               ))
             ) : (
-              <Text style={styles.emptyOrders}>Здесь будет ваша история кофе</Text>
+              <Text style={styles.emptyText}>{t('profile.historyEmpty')}</Text>
             )}
           </View>
 
-          <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
-            <LogOut size={20} color="#FF3B30" />
-            <Text style={styles.logoutBtnText}>Выйти из аккаунта</Text>
-          </TouchableOpacity>
+          <Pressable style={withPressFeedback(styles.logoutBtn)} onPress={onLogout}>
+            <LogOut size={18} color="#FFF" />
+            <Text style={styles.logoutText}>{t('profile.logout')}</Text>
+          </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
+const InputRow: React.FC<{ label: string; icon: React.ReactNode; children: React.ReactNode }> = ({ label, icon, children }) => (
+  <View style={styles.row}>
+    <View style={styles.rowIcon}>{icon}</View>
+    <View style={{ flex: 1 }}>
+      <Text style={styles.rowLabel}>{label}</Text>
+      {children}
+    </View>
+  </View>
+);
+
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F8F9FA' },
-  scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
-  
-  header: { alignItems: 'center', marginBottom: 30 },
-  avatarContainer: { position: 'relative', marginBottom: 16 },
-  avatarCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.15, shadowRadius: 20 },
-      android: { elevation: 8 }
-    })
-  },
-  avatarImage: { width: 100, height: 100, borderRadius: 50 },
-  cameraButton: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#1C1C1E',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#F8F9FA'
-  },
-  userName: { fontSize: 24, fontWeight: '800', color: '#1C1C1E' },
-  userPhone: { fontSize: 14, color: '#8E8E93', marginTop: 4, fontWeight: '500' },
-
-  card: {
-    backgroundColor: '#FFF',
-    borderRadius: 24,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#F2F2F7',
-  },
-  inputRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
-  inputIcon: { marginRight: 16 },
-  inputWrapper: { flex: 1 },
-  inputLabel: { fontSize: 11, fontWeight: '700', color: '#AEA9A9', textTransform: 'uppercase', letterSpacing: 0.5 },
-  textInput: { fontSize: 16, color: '#1C1C1E', fontWeight: '600', paddingVertical: 4 },
-  divider: { height: 1, backgroundColor: '#F2F2F7', marginLeft: 36, marginVertical: 8 },
-  
-  errorText: { color: '#FF3B30', fontSize: 12, marginLeft: 16, marginBottom: 8 },
-  
-  saveAction: {
-    backgroundColor: '#FFF',
-    paddingVertical: 14,
-    borderRadius: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.primary,
-    marginBottom: 30
-  },
-  saveActionText: { color: colors.primary, fontWeight: '700', fontSize: 15 },
-
-  sectionHeader: { fontSize: 18, fontWeight: '800', color: '#1C1C1E', marginBottom: 16, marginLeft: 4 },
-  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-
-  preferenceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  preferenceInfo: { flexDirection: 'row', alignItems: 'center' },
-  iconBox: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  preferenceTitle: { fontSize: 16, fontWeight: '600', color: '#1C1C1E' },
-
-  ordersList: { marginBottom: 30 },
-  orderItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    padding: 12,
-    borderRadius: 20,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#F2F2F7'
-  },
-  orderIconBox: { width: 48, height: 48, backgroundColor: '#F8F9FA', borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  orderIdText: { fontSize: 15, fontWeight: '700', color: '#1C1C1E' },
-  orderDateText: { fontSize: 12, color: '#AEA9A9', marginTop: 2 },
-  orderAmount: { fontSize: 16, fontWeight: '800', color: colors.primary, marginBottom: 2 },
-
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 20 },
-  logoutBtnText: { color: '#FF3B30', fontSize: 16, fontWeight: '700', marginLeft: 10 },
-  emptyOrders: { textAlign: 'center', color: '#AEA9A9', marginTop: 10, fontSize: 14 }
+  safe: { flex: 1, backgroundColor: colors.background },
+  content: { paddingTop: 8, paddingBottom: 120 },
+  profileCard: { alignItems: 'center', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: '#FFF' },
+  avatarWrap: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  avatarImage: { width: 88, height: 88, borderRadius: 44 },
+  cameraBtn: { position: 'absolute', right: -2, bottom: -2, width: 30, height: 30, borderRadius: 999, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFF' },
+  name: { marginTop: 12, fontSize: 20, fontWeight: '800', color: colors.text },
+  phone: { marginTop: 4, fontSize: 13, color: colors.textMuted },
+  card: { marginTop: 12, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: '#FFF', padding: 14 },
+  row: { flexDirection: 'row', gap: 10 },
+  rowIcon: { paddingTop: 6 },
+  rowLabel: { fontSize: 11, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  input: { marginTop: 3, color: colors.text, fontSize: 15, fontWeight: '600', paddingVertical: 3 },
+  divider: { height: 1, backgroundColor: colors.border, marginVertical: 12 },
+  error: { marginTop: 8, color: '#B00020', fontSize: 12 },
+  saveBtn: { marginTop: 10, minHeight: 48, borderRadius: 12, borderWidth: 1, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF' },
+  saveText: { color: colors.primary, fontWeight: '800' },
+  settingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  settingInfo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  iconCircle: { width: 34, height: 34, borderRadius: 9, backgroundColor: '#F7ECE3', alignItems: 'center', justifyContent: 'center' },
+  settingTitle: { color: colors.text, fontWeight: '700' },
+  sectionTitle: { marginTop: 18, color: colors.text, fontSize: 18, fontWeight: '900' },
+  orderRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
+  orderIcon: { width: 32, height: 32, borderRadius: 9, backgroundColor: '#F7ECE3', alignItems: 'center', justifyContent: 'center' },
+  orderTitle: { color: colors.text, fontWeight: '700', fontSize: 14 },
+  orderMeta: { color: colors.textMuted, marginTop: 2, fontSize: 12 },
+  orderAmount: { color: colors.primary, fontWeight: '800' },
+  emptyText: { color: colors.textMuted, textAlign: 'center' },
+  logoutBtn: { marginTop: 16, minHeight: 50, borderRadius: 12, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  logoutText: { color: '#FFF', fontWeight: '800' },
 });

@@ -1,11 +1,28 @@
-export type Category = 'Coffee' | 'Tea' | 'Desserts';
+export type Category = string;
 
-export type PaymentMethod = 'apple_pay' | 'google_pay' | 'card' | 'cash';
+export type PaymentMethod = 'qr' | 'card' | 'cash' | 'apple_pay' | 'google_pay';
+
+export type DeliveryMethod = 'gps' | 'map' | 'manual';
+
+export type OrderStatus =
+  | 'order_received'
+  | 'being_prepared'
+  | 'ready_or_out_for_delivery'
+  | 'completed';
 
 export interface PortionOption {
   id: string;
   grams: number;
   price: number;
+}
+
+export interface DrinkCustomization {
+  size: 'S' | 'M' | 'L';
+  milkType: 'Whole' | 'Oat' | 'Almond' | 'Soy' | 'No milk';
+  sugar: '0' | '1' | '2' | 'custom';
+  extras: string[];
+  temperature: 'Hot' | 'Iced';
+  notes?: string;
 }
 
 export interface Product {
@@ -20,12 +37,22 @@ export interface Product {
   imageUrl?: string;
   image?: any;
   category: Category;
+  prepTimeMin?: number;
+}
+
+export interface DeliveryLocation {
+  method: DeliveryMethod;
+  label: string;
+  addressLine: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface CartItem {
   product: Product;
   option: PortionOption;
   quantity: number;
+  customization?: DrinkCustomization;
 }
 
 export interface Order {
@@ -35,5 +62,7 @@ export interface Order {
   createdAt: string;
   paymentMethod: PaymentMethod;
   comment?: string;
+  status?: OrderStatus;
+  estimatedPrepMinutes?: number;
+  deliveryLocation?: DeliveryLocation;
 }
-

@@ -1,52 +1,53 @@
 import React, { useMemo } from 'react';
-import { FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '../theme/colors';
+import { useNavigation } from '@react-navigation/native';
 import { useProfileStore } from '../store/profileStore';
-
-const SERIF = Platform.select({ ios: 'Georgia', android: 'serif' });
+import { useCartStore } from '../store/cartStore';
+import { colors } from '../theme/colors';
+import { FaizaHeader } from '../components/FaizaHeader';
+import { useI18n } from '../i18n/useI18n';
+import { withPressFeedback } from '../theme/interaction';
 
 export const OrdersScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
+  const { width } = useWindowDimensions();
+  const horizontal = useMemo(() => (width >= 768 ? 28 : 16), [width]);
+  const { t } = useI18n();
   const orders = useProfileStore((s) => s.orders);
-
-  const data = useMemo(() => orders, [orders]);
+  const addToCart = useCartStore((s) => s.addToCart);
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Orders</Text>
-        <Text style={styles.subtitle}>{data.length} total</Text>
-      </View>
+      <FaizaHeader title={t('orders.title')} subtitle={t('orders.subtitle')} />
 
       <FlatList
-        data={data}
-        keyExtractor={(o) => o.id}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.content}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>🧾</Text>
-            <Text style={styles.emptyTitle}>No orders yet</Text>
-            <Text style={styles.emptySub}>When you place an order, it will appear here.</Text>
-          </View>
-        }
+        data={orders}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={[styles.content, { paddingHorizontal: horizontal }]}
+        ListEmptyComponent={<Text style={styles.empty}>{t('orders.empty')}</Text>}
         renderItem={({ item }) => (
-          <Pressable style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+          <View style={styles.card}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.orderTitle}>Order #{item.id.slice(-4)}</Text>
-              <Text style={styles.orderMeta}>
-                {new Date(item.createdAt).toLocaleString()}
-              </Text>
-              <Text style={styles.orderMeta}>
-                {item.items.reduce((sum, it) => sum + it.quantity, 0)} items • {item.total} som
-              </Text>
+              <Text style={styles.orderTitle}>Заказ #{item.id.slice(-6)}</Text>
+              <Text style={styles.orderMeta}>{new Date(item.createdAt).toLocaleString()}</Text>
+              <Text style={styles.orderMeta}>{item.items.reduce((sum, line) => sum + line.quantity, 0)} {t('orders.items')} • {item.total} сом</Text>
             </View>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>
-                {item.paymentMethod.replace('_', ' ')}
-              </Text>
+            <View style={styles.actions}>
+              <Pressable style={withPressFeedback(styles.secondaryBtn)} onPress={() => navigation.navigate('Tracking')}>
+                <Text style={styles.secondaryBtnText}>{t('orders.track')}</Text>
+              </Pressable>
+              <Pressable
+                style={withPressFeedback(styles.primaryBtn)}
+                onPress={() => {
+                  item.items.forEach((line) => addToCart({ product: line.product, option: line.option, customization: line.customization }));
+                  navigation.navigate('Cart');
+                }}
+              >
+                <Text style={styles.primaryBtnText}>{t('orders.reorder')}</Text>
+              </Pressable>
             </View>
-          </Pressable>
+          </View>
         )}
       />
     </SafeAreaView>
@@ -54,97 +55,15 @@ export const OrdersScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: colors.text,
-    fontFamily: SERIF,
-    letterSpacing: -0.4,
-  },
-  subtitle: {
-    marginTop: 6,
-    fontSize: 12,
-    color: colors.textMuted,
-    fontWeight: '800',
-    letterSpacing: 1.1,
-    textTransform: 'uppercase',
-  },
-  content: {
-    paddingHorizontal: 18,
-    paddingBottom: 120,
-  },
-  empty: {
-    marginTop: 70,
-    alignItems: 'center',
-    paddingHorizontal: 18,
-  },
-  emptyIcon: { fontSize: 44, marginBottom: 10 },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.text,
-  },
-  emptySub: {
-    marginTop: 6,
-    fontSize: 13,
-    color: colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.72)',
-    borderWidth: 1,
-    borderColor: 'rgba(43, 33, 29, 0.10)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.06,
-        shadowRadius: 18,
-      },
-      android: { elevation: 3 },
-    }),
-  },
-  cardPressed: { opacity: 0.92, transform: [{ scale: 0.995 }] },
-  orderTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: colors.text,
-  },
-  orderMeta: {
-    marginTop: 6,
-    fontSize: 12,
-    color: colors.textMuted,
-    fontWeight: '700',
-  },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(224, 122, 47, 0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(224, 122, 47, 0.30)',
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: colors.text,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-  },
+  safe: { flex: 1, backgroundColor: colors.background },
+  content: { paddingTop: 8, paddingBottom: 120, gap: 10 },
+  empty: { marginTop: 40, textAlign: 'center', color: colors.textMuted, fontSize: 13 },
+  card: { padding: 14, borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
+  orderTitle: { color: colors.text, fontWeight: '800', fontSize: 15 },
+  orderMeta: { marginTop: 4, color: colors.textMuted, fontSize: 12 },
+  actions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  secondaryBtn: { flex: 1, minHeight: 40, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' },
+  secondaryBtnText: { color: colors.primary, fontWeight: '700', fontSize: 12 },
+  primaryBtn: { flex: 1, minHeight: 40, borderRadius: 10, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  primaryBtnText: { color: '#FFF', fontWeight: '800', fontSize: 12 },
 });
-

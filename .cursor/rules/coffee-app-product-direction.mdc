@@ -1,0 +1,211 @@
+---
+alwaysApply: false
+description: Coffee ordering app product direction, UX flow, visual style, and screen requirements
+---
+# Coffee App Product Direction
+
+Design a coffee-ordering app that feels calm, premium, and fast: "3 taps to reorder, <1 minute to new order."
+
+## Brand and UX Principles
+
+- Visual tone: warm, minimal, and tactile, like a modern specialty cafe
+- Brand mood: cozy, artisanal, contemporary
+- UX principle: one primary action per screen, minimal cognitive load
+- Target: seamless on both iOS and Android with native patterns
+
+## Visual Style System
+
+### Colors
+
+- Espresso (primary): `#4A2E1F`
+- Mocha (secondary): `#7A5640`
+- Cream (background): `#F7F2EB`
+- Oat (surface): `#EDE3D6`
+- Caramel (accent/CTA): `#C08A52`
+- Success (ready state): `#3B7A57`
+
+### Typography
+
+- Headings: bold, rounded sans (for example SF Pro / Inter)
+- Body: regular medium-weight sans for readability
+
+### UI Shape and Components
+
+- Rounded cards (16-20px)
+- Soft shadows, low-contrast borders
+- Large tap targets (44px+)
+- Thin rounded line icons with coffee-themed micro-illustrations
+
+## Information Architecture
+
+### Main Bottom Tabs
+
+- Home
+- Menu
+- Orders (tracking + history)
+- Profile (payments, addresses, preferences)
+
+### Primary Order Flow
+
+1. Home / Menu
+2. Product customization
+3. Cart
+4. Delivery location selection
+5. Payment selection
+6. Order confirmation
+7. Order tracking
+
+## Screen-by-Screen Requirements
+
+### 1) Home Screen
+
+Purpose: quick start and personalized shortcuts.
+
+- Hero card: "Good morning, Amanbek" + featured drink
+- Quick actions: Reorder last order, Favorites, Scan QR to Pay
+- Category chips: Espresso, Milk Coffee, Cold Brew, Tea
+- "Popular near you" horizontal carousel
+- Sticky mini-cart bar appears when cart has items
+- Primary CTA: "Start Order"
+
+### 2) Coffee Menu Screen
+
+Purpose: browse and select products quickly.
+
+- Search bar ("Find your coffee")
+- Filter chips: Hot/Cold, Caffeine level, Price, Dietary
+- Product cards include:
+  - Photo
+  - Name + short taste note
+  - Price from
+  - Average prep time (for example 4-6 min)
+  - Quick add (+) and "Customize"
+- Optional sort: Popular, Price, Prep time
+- UX detail: keep scroll context after adding item with non-disruptive toast confirmation
+
+### 3) Product Customization Screen
+
+Purpose: configurable drink builder with live price.
+
+- Size: S / M / L
+- Milk type: Whole, Oat, Almond, Soy, No milk
+- Sugar: 0 / 1 / 2 / custom
+- Extras: Extra shot, syrup flavors, whipped cream, cinnamon
+- Temperature (where applicable): Hot / Iced
+- Notes field: "Less foam", "Extra hot", etc.
+- Sticky bottom summary:
+  - Final price
+  - Calories (optional)
+  - CTA: "Add to Cart"
+
+### 4) Cart Screen
+
+Purpose: review and edit before checkout.
+
+- Grouped line items with thumbnail + customization summary
+- Quantity stepper (+/-)
+- Swipe to delete
+- Promo code field
+- Price breakdown:
+  - Subtotal
+  - Delivery fee
+  - Taxes
+  - Total
+- Checkout button disabled until delivery location is set
+- Primary CTA: "Continue to Delivery"
+
+### 5) Delivery Location Selection Screen
+
+Mandatory before placing order.
+
+Tabs or segmented control:
+
+- Current GPS location:
+  - "Use my current location" + permission prompt
+- Pick on map:
+  - Map pin drop + "Confirm this point"
+- Manual address:
+  - Street, building, apartment, notes
+
+Additional behavior:
+
+- Saved places: Home / Work shortcuts
+- Validation shows service availability
+- If outside radius, offer pickup fallback
+- Primary CTA: "Confirm Delivery Location"
+
+### 6) Payment Selection Screen
+
+Required options:
+
+- QR code payment (generate/scan flow depending on business model)
+- Credit/debit card (add new card or choose saved tokenized card)
+- Cash ("Cash on delivery" or "Cash at pickup")
+
+Additional behavior:
+
+- Show payment summary + selected method chip
+- Primary CTA: "Place Order"
+
+### 7) Order Confirmation Screen
+
+Purpose: immediate post-checkout reassurance.
+
+- Large success state (for example "Order #CFA-2041 Confirmed")
+- Estimated preparation time (for example "Ready in 12 min")
+- Delivery ETA (if applicable)
+- Summary card: items, address, payment method
+- Actions:
+  - Track order
+  - Save as favorite
+  - Reorder later
+
+### 8) Order Tracking Screen
+
+Real-time timeline:
+
+- Order received
+- Being prepared
+- Ready for pickup / Out for delivery
+- Completed
+
+Elements:
+
+- Live progress bar + timestamped events
+- ETA countdown
+- Shop contact button
+- Courier/location map (delivery mode)
+- Push notification settings toggle
+
+## Additional Feature UX
+
+- Order history:
+  - Past orders list with date, total, status
+  - One-tap Reorder
+- Push notifications:
+  - Ready alert
+  - Courier arriving
+  - Promo/favorite available
+- Estimated prep time shown on:
+  - Menu cards
+  - Cart
+  - Confirmation
+
+## Smooth UX Rules
+
+- Pre-fill last used delivery location and payment method
+- Keep checkout to at most 3 screens after cart
+- Persistent mini-cart on menu/home
+- Reorder from history in one tap
+- Graceful offline states and retry banners
+
+## iOS and Android Optimization
+
+- Follow platform-native gestures and back behavior
+- Use dynamic type / scalable fonts
+- Respect safe areas and notch layouts
+- Haptics for add-to-cart and order placed
+- Accessibility:
+  - Contrast-compliant warm palette
+  - VoiceOver/TalkBack labels
+  - 44px minimum tap targets
