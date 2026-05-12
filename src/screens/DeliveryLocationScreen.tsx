@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
+import MapView, { Marker } from 'react-native-maps';
 import { colors } from '../theme/colors';
 import type { DeliveryMethod } from '../types';
 import { useOrderFlowStore } from '../store/orderFlowStore';
@@ -11,6 +12,15 @@ import { useI18n } from '../i18n/useI18n';
 import { withPressFeedback } from '../theme/interaction';
 
 const methods: Array<{ key: DeliveryMethod }> = [{ key: 'gps' }, { key: 'map' }, { key: 'manual' }];
+
+/** Default map center (Бишкек) — пользователь двигает пин */
+const DEFAULT_MAP_CENTER = { latitude: 42.876, longitude: 74.602 };
+const DEFAULT_REGION = {
+  latitude: DEFAULT_MAP_CENTER.latitude,
+  longitude: DEFAULT_MAP_CENTER.longitude,
+  latitudeDelta: 0.06,
+  longitudeDelta: 0.06,
+};
 
 export const DeliveryLocationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -22,6 +32,14 @@ export const DeliveryLocationScreen: React.FC = () => {
   const [method, setMethod] = useState<DeliveryMethod>('gps');
   const [address, setAddress] = useState('');
   const [coordsLabel, setCoordsLabel] = useState(t('delivery.pointNotSelected'));
+  const [mapPin, setMapPin] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  useEffect(() => {
+    if (method !== 'map') return;
+    if (mapPin) return;
+    setMapPin(DEFAULT_MAP_CENTER);
+    setCoordsLabel(`${DEFAULT_MAP_CENTER.latitude.toFixed(4)}, ${DEFAULT_MAP_CENTER.longitude.toFixed(4)}`);
+  }, [method, mapPin]);
 
   const selectCurrentLocation = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -33,12 +51,15 @@ export const DeliveryLocationScreen: React.FC = () => {
 
   const onConfirm = () => {
     if (method === 'manual' && !address.trim()) return;
+    if (method === 'gps' && coordsLabel === t('delivery.pointNotSelected')) return;
+    if (method === 'map' && !mapPin) return;
 
+    const pin = mapPin;
     const addressLine =
       method === 'gps'
         ? `Геолокация: ${coordsLabel}`
-        : method === 'map'
-          ? `Пин на карте: ${coordsLabel}`
+        : method === 'map' && pin
+          ? `Пин на карте: ${pin.latitude.toFixed(4)}, ${pin.longitude.toFixed(4)}`
           : address.trim();
 
     setDeliveryLocation({
@@ -52,7 +73,7 @@ export const DeliveryLocationScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <FaizaHeader title={t('delivery.title')} subtitle={t('delivery.subtitle')} />
+      <FaizaHeader title={t('delivery.title')} subtitle={t('delivery.subtitle')} onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: horizontal, paddingBottom: 130 }}>
         <View style={styles.segmentWrap}>
@@ -79,10 +100,30 @@ export const DeliveryLocationScreen: React.FC = () => {
         {method === 'map' && (
           <View style={styles.card}>
             <Text style={styles.label}>Выбор на карте</Text>
-            <Text style={styles.helper}>Нажмите ниже, чтобы поставить пин и подтвердить точку.</Text>
-            <Pressable style={withPressFeedback(styles.mapPlaceholder)} onPress={() => setCoordsLabel('42.8760, 74.6020')}>
-              <Text style={styles.mapPlaceholderText}>Поставить пин</Text>
-            </Pressable>
+            <Text style={styles.helper}>Нажмите на карту или перетащите пин, чтобы указать точку доставки.</Text>
+            <View style={styles.mapWrap}>
+              <MapView
+                style={styles.map}
+                initialRegion={DEFAULT_REGION}
+                onPress={(e) => {
+                  const { latitude, longitude } = e.nativeEvent.coordinate;
+                  setMapPin({ latitude, longitude });
+                  setCoordsLabel(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+                }}
+              >
+                {mapPin ? (
+                  <Marker
+                    coordinate={mapPin}
+                    draggable
+                    onDragEnd={(e) => {
+                      const { latitude, longitude } = e.nativeEvent.coordinate;
+                      setMapPin({ latitude, longitude });
+                      setCoordsLabel(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+                    }}
+                  />
+                ) : null}
+              </MapView>
+            </View>
             <Text style={styles.helper}>{coordsLabel}</Text>
           </View>
         )}
@@ -141,18 +182,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   secondaryBtnText: { color: colors.primary, fontWeight: '700', fontSize: 12 },
-  mapPlaceholder: {
+  mapWrap: {
     marginTop: 10,
-    height: 130,
+    height: 220,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: '#F4ECE4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
+    overflow: 'hidden',
   },
-  mapPlaceholderText: { color: colors.primary, fontWeight: '700', textAlign: 'center' },
+  map: { flex: 1 },
   input: {
     marginTop: 10,
     borderRadius: 10,

@@ -16,9 +16,20 @@ export const OrderConfirmationScreen: React.FC = () => {
   const horizontal = useMemo(() => (width >= 768 ? 28 : 16), [width]);
   const { t } = useI18n();
 
+  const closeCheckoutFlow = () => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Tabs', params: { screen: 'Home' } }],
+    });
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
-      <FaizaHeader title={t('confirmation.title')} subtitle={`#${order?.id.slice(-6) ?? 'CFA-2041'}`} />
+      <FaizaHeader
+        title={t('confirmation.title')}
+        subtitle={`#${order?.id.slice(-6) ?? 'CFA-2041'}`}
+        onBack={closeCheckoutFlow}
+      />
 
       <View style={[styles.content, { paddingHorizontal: horizontal }]}>
         <View style={styles.centered}>
@@ -38,7 +49,7 @@ export const OrderConfirmationScreen: React.FC = () => {
       <View style={[styles.actions, { paddingHorizontal: horizontal }]}> 
         <Pressable
           style={withPressFeedback(styles.secondaryBtn)}
-          onPress={() => navigation.navigate('Tabs', { screen: 'Menu' })}
+          onPress={closeCheckoutFlow}
         >
           <Text style={styles.secondaryText}>{t('confirmation.reorderLater')}</Text>
         </Pressable>

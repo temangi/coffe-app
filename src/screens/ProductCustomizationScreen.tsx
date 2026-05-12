@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { MENU_ITEMS } from '../menu';
+import { useMenuStore } from '../store/menuStore';
 import type { DrinkCustomization, PortionOption } from '../types';
 import { useCartStore } from '../store/cartStore';
 import { colors } from '../theme/colors';
@@ -10,12 +10,7 @@ import { FaizaHeader } from '../components/FaizaHeader';
 import { useI18n } from '../i18n/useI18n';
 import { withPressFeedback } from '../theme/interaction';
 
-const sizes: Array<'S' | 'M' | 'L'> = ['S', 'M', 'L'];
-const milkTypes: Array<'Whole' | 'Oat' | 'Almond' | 'Soy' | 'No milk'> = ['Whole', 'Oat', 'Almond', 'Soy', 'No milk'];
-const sugarOptions: Array<'0' | '1' | '2' | 'custom'> = ['0', '1', '2', 'custom'];
-const temperatures: Array<'Hot' | 'Iced'> = ['Hot', 'Iced'];
-const extras = ['Доп. порция', 'Ванильный сироп', 'Карамельный сироп', 'Сливки', 'Корица'];
-const extraPrice = 30;
+const sizes: Array<'S' | 'L'> = ['S', 'L'];
 
 export const ProductCustomizationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -24,30 +19,65 @@ export const ProductCustomizationScreen: React.FC = () => {
   const horizontal = useMemo(() => (width >= 768 ? 28 : 16), [width]);
   const addToCart = useCartStore((s) => s.addToCart);
   const { t } = useI18n();
+  const MENU_ITEMS = useMenuStore((s) => s.products);
+  const menuLoading = useMenuStore((s) => s.loading);
 
-  const product = MENU_ITEMS.find((item) => item.id === route.params?.productId) ?? MENU_ITEMS[0];
+  const product =
+    MENU_ITEMS.find((item) => item.id === route.params?.productId) ?? MENU_ITEMS[0];
 
-  const [customization, setCustomization] = useState<DrinkCustomization>({
-    size: 'M',
-    milkType: 'Whole',
-    sugar: '1',
-    extras: [],
-    temperature: 'Hot',
-    notes: '',
-  });
+  const [size, setSize] = useState<'S' | 'L'>('S');
+  const [notes, setNotes] = useState('');
 
-  const baseOption = useMemo(() => {
-    const fallback = product.options?.[0] ?? { id: 'M', grams: 300, price: product.price };
-    return product.options?.find((option) => option.id === customization.size) ?? fallback;
-  }, [customization.size, product.options, product.price]);
+  const portionBySize = useMemo(() => {
+    if (!product) {
+      const placeholder = { id: '—', grams: 0, price: 0 };
+      return { S: placeholder, L: placeholder } as const;
+    }
+    const opts = product.options?.length
+      ? product.options
+      : [{ id: `${product.id}-portion`, grams: 300, price: product.price }];
+    const small = opts[0];
+    const large = opts.length > 1 ? opts[opts.length - 1] : opts[0];
+    return { S: small, L: large } as const;
+  }, [product]);
 
-  const finalPrice = baseOption.price + customization.extras.length * extraPrice;
+  const baseOption = portionBySize[size];
+
+  const finalPrice = baseOption.price;
+
+  const customization: DrinkCustomization = useMemo(
+    () => ({
+      size,
+      milkType: 'Whole',
+      sugar: '0',
+      extras: [],
+      temperature: 'Hot',
+      notes: notes.trim() || undefined,
+    }),
+    [size, notes],
+  );
 
   const finalOption: PortionOption = {
-    id: [baseOption.id, customization.temperature, customization.milkType, customization.sugar, customization.extras.join('-')].join('-'),
+    id: [baseOption.id, size, notes.trim()].join('|'),
     grams: baseOption.grams,
     price: finalPrice,
   };
+
+  if (menuLoading && !product) {
+    return (
+      <SafeAreaView style={[styles.safe, styles.centered]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  if (!product) {
+    return (
+      <SafeAreaView style={[styles.safe, styles.centered]}>
+        <Text style={styles.errorText}>Блюдо не найдено</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -57,47 +87,13 @@ export const ProductCustomizationScreen: React.FC = () => {
         <Text style={styles.subtitle}>{product.description}</Text>
 
         <Section title={t('customize.size')}>
-          <RowOptions options={sizes} value={customization.size} onSelect={(size) => setCustomization((prev) => ({ ...prev, size }))} />
-        </Section>
-
-        <Section title={t('customize.milk')}>
-          <RowOptions options={milkTypes} value={customization.milkType} onSelect={(milkType) => setCustomization((prev) => ({ ...prev, milkType }))} />
-        </Section>
-
-        <Section title={t('customize.sugar')}>
-          <RowOptions options={sugarOptions} value={customization.sugar} onSelect={(sugar) => setCustomization((prev) => ({ ...prev, sugar }))} />
-        </Section>
-
-        <Section title={t('customize.temperature')}>
-          <RowOptions options={temperatures} value={customization.temperature} onSelect={(temperature) => setCustomization((prev) => ({ ...prev, temperature }))} />
-        </Section>
-
-        <Section title={t('customize.extras')}>
-          <View style={styles.wrapOptions}>
-            {extras.map((extra) => {
-              const selected = customization.extras.includes(extra);
-              return (
-                <Pressable
-                  key={extra}
-                  style={withPressFeedback([styles.wrapChip, selected && styles.wrapChipActive])}
-                  onPress={() =>
-                    setCustomization((prev) => ({
-                      ...prev,
-                      extras: selected ? prev.extras.filter((item) => item !== extra) : [...prev.extras, extra],
-                    }))
-                  }
-                >
-                  <Text style={[styles.wrapChipText, selected && styles.wrapChipTextActive]}>{extra}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <RowOptions options={sizes} value={size} onSelect={setSize} />
         </Section>
 
         <Section title={t('customize.comment')}>
           <TextInput
-            value={customization.notes}
-            onChangeText={(notes) => setCustomization((prev) => ({ ...prev, notes }))}
+            value={notes}
+            onChangeText={setNotes}
             style={styles.notesInput}
             placeholder={t('customize.commentPlaceholder')}
             placeholderTextColor={colors.textMuted}
@@ -109,7 +105,7 @@ export const ProductCustomizationScreen: React.FC = () => {
         <View>
           <Text style={styles.priceLabel}>{t('customize.finalPrice')}</Text>
           <Text style={styles.price}>{finalPrice} сом</Text>
-          <Text style={styles.calories}>~{170 + customization.extras.length * 20} {t('customize.kcal')}</Text>
+          <Text style={styles.calories}>~170 {t('customize.kcal')}</Text>
         </View>
         <Pressable
           style={withPressFeedback(styles.cta)}
@@ -147,6 +143,8 @@ const RowOptions = <T extends string>({ options, value, onSelect }: { options: T
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
+  centered: { alignItems: 'center', justifyContent: 'center' },
+  errorText: { color: colors.textMuted, fontSize: 15 },
   content: { paddingBottom: 140 },
   subtitle: { marginTop: 8, color: colors.textMuted, fontSize: 13, lineHeight: 19 },
   section: { marginTop: 16, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: '#FFF' },
@@ -156,11 +154,6 @@ const styles = StyleSheet.create({
   rowChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   rowChipText: { color: colors.primary, fontWeight: '700', fontSize: 12 },
   rowChipTextActive: { color: '#FFF' },
-  wrapOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  wrapChip: { borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: '#FFF', paddingHorizontal: 12, paddingVertical: 8 },
-  wrapChipActive: { borderColor: colors.primary, backgroundColor: '#F9ECEC' },
-  wrapChipText: { color: colors.text, fontWeight: '600', fontSize: 12 },
-  wrapChipTextActive: { color: colors.primary, fontWeight: '800' },
   notesInput: { minHeight: 80, textAlignVertical: 'top', borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: '#FFF', paddingHorizontal: 12, paddingVertical: 10, color: colors.text },
   footer: {
     position: 'absolute',

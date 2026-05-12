@@ -3,7 +3,7 @@ import { Animated, FlatList, Image, Pressable, StyleSheet, Text, TextInput, View
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { SlidersHorizontal } from 'lucide-react-native';
-import { MENU_CATEGORIES, MENU_ITEMS } from '../menu';
+import { useMenuStore } from '../store/menuStore';
 import type { Category } from '../types';
 import { colors } from '../theme/colors';
 import { FaizaHeader } from '../components/FaizaHeader';
@@ -17,6 +17,8 @@ export const MenuScreen: React.FC = () => {
   const { width } = useWindowDimensions();
   const horizontal = useMemo(() => (width >= 768 ? 28 : 16), [width]);
   const { t } = useI18n();
+  const MENU_CATEGORIES = useMenuStore((s) => s.categories);
+  const MENU_ITEMS = useMenuStore((s) => s.products);
 
   const [query, setQuery] = useState('');
   const normalizeText = useCallback((value: unknown) => String(value ?? '').trim().toLowerCase(), []);
@@ -34,9 +36,9 @@ export const MenuScreen: React.FC = () => {
             : '';
 
       const found = MENU_CATEGORIES.find((item) => normalizeText(item) === normalizeText(extracted));
-      return (found ?? MENU_CATEGORIES[0]) as Category;
+      return (found ?? MENU_CATEGORIES[0] ?? '') as Category;
     },
-    [normalizeText],
+    [MENU_CATEGORIES, normalizeText],
   );
 
   const incomingCategory = route.params?.category;
@@ -52,7 +54,10 @@ export const MenuScreen: React.FC = () => {
       if (incomingCategory !== undefined) {
         setCategory(resolveCategory(incomingCategory));
       }
-    }, [incomingCategory, resolveCategory]),
+      // Tab + native-driver list fade can leave opacity at 0 if blur interrupts the animation;
+      // without a category change the effect below does not run, so the list stays invisible.
+      listAnim.setValue(1);
+    }, [incomingCategory, resolveCategory, listAnim]),
   );
 
   useEffect(() => {

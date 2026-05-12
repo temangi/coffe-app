@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import React, { createContext, useContext } from 'react';
+import { View, StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Coffee, Home, List, User2 } from 'lucide-react-native';
@@ -19,7 +19,6 @@ import { OrderTrackingScreen } from '../screens/OrderTrackingScreen';
 import { OrdersScreen } from '../screens/OrdersScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { useI18n } from '../i18n/useI18n';
-import { fontFamily } from '../theme/typography';
 
 type RootStackParamList = {
   Tabs: undefined;
@@ -34,6 +33,15 @@ type RootStackParamList = {
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+/** Stable logout for tab tree — avoids remounting tabs when Stack parent re-renders. */
+const LogoutContext = createContext<(() => void) | undefined>(undefined);
+
+function TabsScreen() {
+  const onLogout = useContext(LogoutContext);
+  if (!onLogout) return null;
+  return <MainTabs onLogout={onLogout} />;
+}
+
 const MainTabs: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
@@ -41,6 +49,7 @@ const MainTabs: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   return (
     <Tab.Navigator
       initialRouteName="Home"
+      detachInactiveScreens={false}
       screenOptions={{
         headerShown: false,
         animation: 'shift',
@@ -68,49 +77,51 @@ export const AppNavigator: React.FC = () => {
   }
 
   return (
-    <View style={styles.wrapper}>
-      <Stack.Navigator
-        initialRouteName="Tabs"
-        screenOptions={{
-          headerShown: false,
-          animation: 'simple_push',
-          gestureEnabled: true,
-          fullScreenGestureEnabled: true,
-        }}
-      >
-        <Stack.Screen name="Tabs">{() => <MainTabs onLogout={logout} />}</Stack.Screen>
-        <Stack.Screen name="Customize" component={ProductCustomizationScreen} options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="Cart" component={CartScreen} options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen
-          name="Delivery"
-          component={DeliveryLocationScreen}
-          options={{
-            presentation: 'containedModal',
-            animation: 'slide_from_bottom',
-            gestureDirection: 'vertical',
+    <LogoutContext.Provider value={logout}>
+      <View style={styles.wrapper}>
+        <Stack.Navigator
+          initialRouteName="Tabs"
+          screenOptions={{
+            headerShown: false,
+            animation: 'simple_push',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
           }}
-        />
-        <Stack.Screen
-          name="Payment"
-          component={PaymentSelectionScreen}
-          options={{
-            presentation: 'containedModal',
-            animation: 'slide_from_bottom',
-            gestureDirection: 'vertical',
-          }}
-        />
-        <Stack.Screen
-          name="Confirmation"
-          component={OrderConfirmationScreen}
-          options={{
-            presentation: 'containedModal',
-            animation: 'fade_from_bottom',
-            gestureDirection: 'vertical',
-          }}
-        />
-        <Stack.Screen name="Tracking" component={OrderTrackingScreen} options={{ animation: 'slide_from_right' }} />
-      </Stack.Navigator>
-    </View>
+        >
+          <Stack.Screen name="Tabs" component={TabsScreen} />
+          <Stack.Screen name="Customize" component={ProductCustomizationScreen} options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="Cart" component={CartScreen} options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen
+            name="Delivery"
+            component={DeliveryLocationScreen}
+            options={{
+              presentation: 'containedModal',
+              animation: 'slide_from_bottom',
+              gestureDirection: 'vertical',
+            }}
+          />
+          <Stack.Screen
+            name="Payment"
+            component={PaymentSelectionScreen}
+            options={{
+              presentation: 'containedModal',
+              animation: 'slide_from_bottom',
+              gestureDirection: 'vertical',
+            }}
+          />
+          <Stack.Screen
+            name="Confirmation"
+            component={OrderConfirmationScreen}
+            options={{
+              presentation: 'containedModal',
+              animation: 'fade_from_bottom',
+              gestureDirection: 'vertical',
+            }}
+          />
+          <Stack.Screen name="Tracking" component={OrderTrackingScreen} options={{ animation: 'slide_from_right' }} />
+        </Stack.Navigator>
+      </View>
+    </LogoutContext.Provider>
   );
 };
 

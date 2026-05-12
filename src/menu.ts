@@ -1,6 +1,5 @@
 import type { Category, Product } from './types';
 
-// Generated from https://faiza.kg/menu public API
 export const MENU_CATEGORIES: Category[] = [
   "Горячие блюда",
   "Холодные блюда",

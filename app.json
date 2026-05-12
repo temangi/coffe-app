@@ -12,6 +12,14 @@
       "backgroundColor": "#F5EDE3"
     },
     "assetBundlePatterns": ["**/*"],
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Нужен доступ к геолокации, чтобы определить адрес доставки."
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": true
     },

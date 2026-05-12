@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useProfileStore } from '../store/profileStore';
 import { useCartStore } from '../store/cartStore';
+import { useOrderFlowStore } from '../store/orderFlowStore';
 import { colors } from '../theme/colors';
 import { FaizaHeader } from '../components/FaizaHeader';
 import { useI18n } from '../i18n/useI18n';
@@ -16,6 +17,23 @@ export const OrdersScreen: React.FC = () => {
   const { t } = useI18n();
   const orders = useProfileStore((s) => s.orders);
   const addToCart = useCartStore((s) => s.addToCart);
+  const setActiveOrder = useOrderFlowStore((s) => s.setActiveOrder);
+  const clearDeliveryLocation = useOrderFlowStore((s) => s.clearDeliveryLocation);
+
+  const getStatusLabel = (status?: string) => {
+    switch (status) {
+      case 'order_received':
+        return t('tracking.orderReceived');
+      case 'being_prepared':
+        return t('tracking.preparing');
+      case 'ready_or_out_for_delivery':
+        return t('tracking.out');
+      case 'completed':
+        return t('tracking.done');
+      default:
+        return t('tracking.orderReceived');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -32,15 +50,23 @@ export const OrdersScreen: React.FC = () => {
               <Text style={styles.orderTitle}>Заказ #{item.id.slice(-6)}</Text>
               <Text style={styles.orderMeta}>{new Date(item.createdAt).toLocaleString()}</Text>
               <Text style={styles.orderMeta}>{item.items.reduce((sum, line) => sum + line.quantity, 0)} {t('orders.items')} • {item.total} сом</Text>
+              <Text style={styles.orderStatus}>{getStatusLabel(item.status)}</Text>
             </View>
             <View style={styles.actions}>
-              <Pressable style={withPressFeedback(styles.secondaryBtn)} onPress={() => navigation.navigate('Tracking')}>
+              <Pressable
+                style={withPressFeedback(styles.secondaryBtn)}
+                onPress={() => {
+                  setActiveOrder(item);
+                  navigation.navigate('Tracking');
+                }}
+              >
                 <Text style={styles.secondaryBtnText}>{t('orders.track')}</Text>
               </Pressable>
               <Pressable
                 style={withPressFeedback(styles.primaryBtn)}
                 onPress={() => {
                   item.items.forEach((line) => addToCart({ product: line.product, option: line.option, customization: line.customization }));
+                  clearDeliveryLocation();
                   navigation.navigate('Cart');
                 }}
               >
@@ -61,6 +87,7 @@ const styles = StyleSheet.create({
   card: { padding: 14, borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
   orderTitle: { color: colors.text, fontWeight: '800', fontSize: 15 },
   orderMeta: { marginTop: 4, color: colors.textMuted, fontSize: 12 },
+  orderStatus: { marginTop: 6, color: colors.success, fontSize: 12, fontWeight: '800' },
   actions: { flexDirection: 'row', gap: 8, marginTop: 12 },
   secondaryBtn: { flex: 1, minHeight: 40, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' },
   secondaryBtnText: { color: colors.primary, fontWeight: '700', fontSize: 12 },
