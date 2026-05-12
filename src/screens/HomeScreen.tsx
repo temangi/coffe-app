@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Clock3, QrCode, Repeat, Star } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import { useCartStore } from '../store/cartStore';
-import { MENU_CATEGORIES } from '../menu';
+import { useMenuStore } from '../store/menuStore';
 import { FaizaHeader } from '../components/FaizaHeader';
 import { useI18n } from '../i18n/useI18n';
 import { withPressFeedback } from '../theme/interaction';
@@ -15,6 +15,8 @@ export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const cartCount = useCartStore((s) => s.items.reduce((sum, i) => sum + i.quantity, 0));
   const { t } = useI18n();
+  const MENU_CATEGORIES = useMenuStore((s) => s.categories);
+  const popularProduct = useMenuStore((s) => s.products[0]);
   const { width } = useWindowDimensions();
   const horizontal = useMemo(() => (width >= 768 ? 28 : 16), [width]);
 
@@ -65,12 +67,14 @@ export const HomeScreen: React.FC = () => {
         <Text style={styles.sectionTitle}>{t('home.popular')}</Text>
         <View style={styles.popularCard}>
           <View>
-            <Text style={styles.popularTitle}>Босо Лагман</Text>
-            <Text style={styles.popularMeta}>Хит Faiza • Горячие блюда</Text>
+            <Text style={styles.popularTitle}>{popularProduct?.name ?? '—'}</Text>
+            <Text style={styles.popularMeta}>
+              {popularProduct ? `Хит Faiza • ${popularProduct.category}` : 'Faiza'}
+            </Text>
           </View>
           <View style={styles.prepPill}>
             <Clock3 size={14} color={colors.success} />
-            <Text style={styles.prepText}>~12 мин</Text>
+            <Text style={styles.prepText}>~{popularProduct?.prepTimeMin ?? 12} мин</Text>
           </View>
         </View>
       </ScrollView>

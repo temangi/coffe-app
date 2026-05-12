@@ -1,7 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ArrowLeft } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import { useAppUiStore } from '../store/appUiStore';
+import { useI18n } from '../i18n/useI18n';
 import { withPressFeedback } from '../theme/interaction';
 import { fontFamily } from '../theme/typography';
 
@@ -14,20 +16,36 @@ const languages: Array<{ code: 'ru' | 'kg' | 'en'; label: string }> = [
 interface FaizaHeaderProps {
   title?: string;
   subtitle?: string;
+  /** Показать кнопку «Назад» (например, в модальных шагах чекаута). */
+  onBack?: () => void;
 }
 
-export const FaizaHeader: React.FC<FaizaHeaderProps> = ({ title, subtitle }) => {
+export const FaizaHeader: React.FC<FaizaHeaderProps> = ({ title, subtitle, onBack }) => {
   const { width } = useWindowDimensions();
   const language = useAppUiStore((s) => s.language);
   const setLanguage = useAppUiStore((s) => s.setLanguage);
+  const { t } = useI18n();
   const horizontal = width >= 768 ? 28 : 16;
 
   return (
     <View style={[styles.wrapper, { paddingHorizontal: horizontal }]}>
       <View style={styles.topRow}>
-        <View style={styles.logoWrap}>
-          <Text style={styles.brandTitle}>FAIZA</Text>
-          <Text style={styles.brandSub}>restaurant</Text>
+        <View style={styles.leftCluster}>
+          {onBack ? (
+            <Pressable
+              onPress={onBack}
+              style={({ pressed }) => [styles.backBtn, pressed && styles.backBtnPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.back')}
+              hitSlop={10}
+            >
+              <ArrowLeft size={22} color={colors.text} strokeWidth={2.2} />
+            </Pressable>
+          ) : null}
+          <View style={styles.logoWrap}>
+            <Text style={styles.brandTitle}>FAIZA</Text>
+            <Text style={styles.brandSub}>restaurant</Text>
+          </View>
         </View>
 
         <View style={styles.langWrap}>
@@ -60,9 +78,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 10,
   },
+  leftCluster: { flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0, gap: 4 },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: '#FFF',
+  },
+  backBtnPressed: { opacity: 0.85 },
   logoWrap: {
     height: 46,
     justifyContent: 'center',
+    flexShrink: 1,
   },
   brandTitle: {
     color: colors.primary,

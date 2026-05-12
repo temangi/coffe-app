@@ -25,7 +25,7 @@ export const PaymentSelectionScreen: React.FC = () => {
   const { t } = useI18n();
   const { items, createOrderMock } = useCartStore();
   const addOrderToHistory = useProfileStore((s) => s.addOrderToHistory);
-  const { paymentMethod, setPaymentMethod, deliveryLocation, setActiveOrder } = useOrderFlowStore();
+  const { paymentMethod, setPaymentMethod, deliveryLocation, setActiveOrder, clearDeliveryLocation } = useOrderFlowStore();
 
   const onPlaceOrder = () => {
     if (!items.length || !deliveryLocation) return;
@@ -38,12 +38,13 @@ export const PaymentSelectionScreen: React.FC = () => {
 
     addOrderToHistory(order);
     setActiveOrder(order);
+    clearDeliveryLocation();
     navigation.navigate('Confirmation');
   };
 
   return (
     <SafeAreaView style={styles.safe}>
-      <FaizaHeader title={t('payment.title')} subtitle={t('payment.subtitle')} />
+      <FaizaHeader title={t('payment.title')} subtitle={t('payment.subtitle')} onBack={() => navigation.goBack()} />
 
       <View style={[styles.content, { paddingHorizontal: horizontal }]}>
         {options.map((item) => {

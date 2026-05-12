@@ -25,7 +25,7 @@ export const CartScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <FaizaHeader title={t('cart.title')} subtitle={`${items.length} ${t('cart.subtitle')}`} />
+      <FaizaHeader title={t('cart.title')} subtitle={`${items.length} ${t('cart.subtitle')}`} onBack={() => navigation.goBack()} />
 
       <FlatList
         data={items}
@@ -76,7 +76,11 @@ export const CartScreen: React.FC = () => {
         <Line label={t('cart.service')} value={`${taxes} сом`} />
         <Line label={t('cart.total')} value={`${total} сом`} strong />
 
-        <Pressable style={withPressFeedback([styles.cta, !items.length && styles.ctaDisabled])} disabled={!items.length} onPress={() => navigation.navigate('Delivery')}>
+        <Pressable
+          style={withPressFeedback([styles.cta, !items.length && styles.ctaDisabled])}
+          disabled={!items.length}
+          onPress={() => navigation.navigate(deliveryLocation ? 'Payment' : 'Delivery')}
+        >
           <Text style={styles.ctaText}>{deliveryLocation ? t('common.continueToPayment') : t('common.setDeliveryAddress')}</Text>
         </Pressable>
       </View>
